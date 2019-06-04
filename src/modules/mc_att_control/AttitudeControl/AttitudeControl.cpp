@@ -42,17 +42,6 @@
 
 using namespace matrix;
 
-void AttitudeControl::setProportionalGain(const matrix::Vector3f &proportional_gain)
-{
-	_proportional_gain = proportional_gain;
-
-	// prepare yaw weight from the ratio between roll/pitch and yaw gains
-	const float roll_pitch_gain = (proportional_gain(0) + proportional_gain(1)) / 2.f;
-	_yaw_w = math::constrain(proportional_gain(2) / roll_pitch_gain, 0.f, 1.f);
-
-	_proportional_gain(2) = roll_pitch_gain;
-}
-
 matrix::Vector3f AttitudeControl::update(matrix::Quatf q, matrix::Quatf qd, float yawspeed_feedforward)
 {
 	// ensure input quaternions are exactly normalized because acosf(1.00001) == NaN

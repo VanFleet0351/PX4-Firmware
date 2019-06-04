@@ -69,7 +69,16 @@ public:
 	 * Set proportional attitude control gain
 	 * @param proportional_gain 3D vector containing gains for roll, pitch, yaw
 	 */
-	void setProportionalGain(const matrix::Vector3f &proportional_gain);
+	void setProportionalGain(const matrix::Vector3f &proportional_gain) { _proportional_gain = proportional_gain; }
+
+	/**
+	 * Set yaw weight for mixing in yaw control with roll and pitch
+	 * Deprioritizing yaw is necessary because multicopters have much less control authority
+	 * in yaw compared to the other axes and it makes sense because yaw is not critical for
+	 * stable hovering or 3D navigation.
+	 * @param yaw_weight A fraction [0,1] deprioritizing yaw compared to roll and pitch
+	 */
+	void setYawWeight(const float yaw_weight) { _yaw_w = yaw_weight; }
 
 	/**
 	 * Set hard limit for output rate setpoints

@@ -224,6 +224,7 @@ private:
 		(ParamFloat<px4::params::MC_PITCHRATE_K>) _param_mc_pitchrate_k,
 
 		(ParamFloat<px4::params::MC_YAW_P>) _param_mc_yaw_p,
+		(ParamFloat<px4::params::MC_YAW_WEIGHT>) _param_mc_yaw_weight,
 		(ParamFloat<px4::params::MC_YAWRATE_P>) _param_mc_yawrate_p,
 		(ParamFloat<px4::params::MC_YAWRATE_I>) _param_mc_yawrate_i,
 		(ParamFloat<px4::params::MC_YR_INT_LIM>) _param_mc_yr_int_lim,
