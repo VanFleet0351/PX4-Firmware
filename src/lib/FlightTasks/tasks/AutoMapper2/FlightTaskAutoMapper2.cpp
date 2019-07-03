@@ -129,15 +129,55 @@ void FlightTaskAutoMapper2::_prepareIdleSetpoints()
 
 void FlightTaskAutoMapper2::_prepareLandSetpoints()
 {
-	float land_speed = _getLandSpeed();
+	bool rc_assist_enabled = _param_mpc_land_rc_help.get();
+	bool rc_is_valid = !_sub_vehicle_status->get().rc_signal_lost;
 
-	// Keep xy-position and go down with landspeed
-	_position_setpoint = Vector3f(_target(0), _target(1), NAN);
-	_velocity_setpoint = Vector3f(Vector3f(NAN, NAN, land_speed));
+	// Check if RC assist is enabled. If true, modify land velocity setpoints with stick values
+	if (rc_is_valid && rc_assist_enabled) {
+		_position_setpoint = Vector3f(NAN, NAN, NAN);
+		_velocity_setpoint = _getAssistedLandVelocitySetpoints();
+	}
+	else
+	{
+		// Keep xy-position and go down with landspeed
+		float land_speed = _param_mpc_land_speed.get();
+		_position_setpoint = Vector3f(_target(0), _target(1), NAN);
+		_velocity_setpoint = Vector3f(NAN, NAN, land_speed);
+	}
 
 	// set constraints
 	_constraints.tilt = _param_mpc_tiltmax_lnd.get();
 	_gear.landing_gear = landing_gear_s::GEAR_DOWN;
+}
+
+matrix::Vector3f FlightTaskAutoMapper2::_getAssistedLandVelocitySetpoints()
+{
+	// Get values from sticks: -1 to +1, 0 is center
+	float x_vel_sp = _sub_manual_control_setpoint->get().x;
+	float y_vel_sp = _sub_manual_control_setpoint->get().y;
+	float z_vel_sp = _sub_manual_control_setpoint->get().z;
+
+	// Scale XY sticks by MPC_XY_CRUISE
+	x_vel_sp *= _param_mpc_xy_cruise.get();
+	y_vel_sp *= _param_mpc_xy_cruise.get();
+
+	// Scale Z sticks by MPC_LAND_SPEED and contrain by MPC_LAND_ALT1, MPC_LAND_SPEED, and MPC_Z_VEL_MAX_DN
+	if (_alt_above_ground > _param_mpc_land_alt1.get()) {
+		z_vel_sp = _constraints.speed_down;
+
+	} else {
+		float land_speed = _param_mpc_land_speed.get();
+		float head_room = _constraints.speed_down - land_speed;
+
+		z_vel_sp = land_speed + 2 * (0.5f - z_vel_sp) * head_room;
+
+		// Allow minimum assisted land speed to be half of parameter
+		if (z_vel_sp < land_speed * 0.5f) {
+			z_vel_sp = land_speed * 0.5f;
+		}
+	}
+
+	return matrix::Vector3f(x_vel_sp, y_vel_sp, z_vel_sp);
 }
 
 void FlightTaskAutoMapper2::_prepareTakeoffSetpoints()
@@ -194,35 +234,4 @@ bool FlightTaskAutoMapper2::_highEnoughForLandingGear()
 {
 	// return true if altitude is above two meters
 	return _alt_above_ground > 2.0f;
-}
-
-float FlightTaskAutoMapper2::_getLandSpeed()
-{
-	bool rc_assist_enabled = _param_mpc_land_rc_help.get();
-	bool rc_is_valid = !_sub_vehicle_status->get().rc_signal_lost;
-
-	float throttle = 0.5f;
-
-	if (rc_is_valid && rc_assist_enabled) {
-		throttle = _sub_manual_control_setpoint->get().z;
-	}
-
-	float speed = 0;
-
-	if (_alt_above_ground > _param_mpc_land_alt1.get()) {
-		speed = _constraints.speed_down;
-
-	} else {
-		float land_speed = _param_mpc_land_speed.get();
-		float head_room = _constraints.speed_down - land_speed;
-
-		speed = land_speed + 2 * (0.5f - throttle) * head_room;
-
-		// Allow minimum assisted land speed to be half of parameter
-		if (speed < land_speed * 0.5f) {
-			speed = land_speed * 0.5f;
-		}
-	}
-
-	return speed;
 }
