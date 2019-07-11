@@ -436,11 +436,6 @@ else
 	navigator start
 
 	#
-	# Start the airspeed selector.
-	#
-	airspeed_selector start
-
-	#
 	# Start a thermal calibration if required.
 	#
 	sh /etc/init.d/rc.thermal_cal
