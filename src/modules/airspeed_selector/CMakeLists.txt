@@ -31,10 +31,10 @@
 #
 ############################################################################
 px4_add_module(
-	MODULE modules__wind_estimator
-	MAIN wind_estimator
+	MODULE modules__airspeed_selector
+	MAIN airspeed_selector
 	SRCS
-		wind_estimator_main.cpp
+		airspeed_selector_main.cpp
 	DEPENDS
 		git_ecl
 		ecl_airdata

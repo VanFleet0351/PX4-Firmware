@@ -436,12 +436,9 @@ else
 	navigator start
 
 	#
-	# Start the standalone wind estimator.
+	# Start the airspeed selector.
 	#
-	if param compare WEST_EN 1
-	then
-		wind_estimator start
-	fi
+	airspeed_selector start
 
 	#
 	# Start a thermal calibration if required.

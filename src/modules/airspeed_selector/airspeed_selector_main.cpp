@@ -173,8 +173,8 @@ AirspeedModule::AirspeedModule():
 	// initialise parameters
 	update_params();
 
-	_perf_elapsed = perf_alloc_once(PC_ELAPSED, "wind_estimator elapsed");
-	_perf_interval = perf_alloc_once(PC_INTERVAL, "wind_estimator interval");
+	_perf_elapsed = perf_alloc_once(PC_ELAPSED, "airspeed_selector elapsed");
+	_perf_interval = perf_alloc_once(PC_INTERVAL, "airspeed_selector interval");
 }
 
 AirspeedModule::~AirspeedModule()
@@ -583,10 +583,10 @@ int AirspeedModule::print_status()
 	return 0;
 }
 
-extern "C" __EXPORT int wind_estimator_main(int argc, char *argv[]);
+extern "C" __EXPORT int airspeed_selector_main(int argc, char *argv[]);
 
 int
-wind_estimator_main(int argc, char *argv[])
+airspeed_selector_main(int argc, char *argv[])
 {
 	return AirspeedModule::main(argc, argv);
 }

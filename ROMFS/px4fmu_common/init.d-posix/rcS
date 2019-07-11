@@ -211,10 +211,7 @@ sensors start
 commander start
 navigator start
 
-if param compare WEST_EN 1
-then
-	wind_estimator start
-fi
+airspeed_selector start
 
 if ! param compare MNT_MODE_IN -1
 then
