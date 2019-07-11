@@ -284,7 +284,6 @@ AirspeedModule::Run()
 		input_data.att_q[2] = _vehicle_attitude.q[2];
 		input_data.att_q[3] = _vehicle_attitude.q[3];
 		input_data.air_pressure_pa = _vehicle_air_data.baro_pressure_pa;
-		input_data.air_temperature_celsius = _vehicle_air_data.baro_temp_celcius;
 		input_data.accel_z = _sensor_bias.accel_z;
 		input_data.vel_test_ratio = _estimator_status.vel_test_ratio;
 		input_data.mag_test_ratio = _estimator_status.mag_test_ratio;
@@ -298,6 +297,7 @@ AirspeedModule::Run()
 			input_data.airspeed_indicated_raw = airspeed_raw.indicated_airspeed_m_s;
 			input_data.airspeed_true_raw = airspeed_raw.true_airspeed_m_s;
 			input_data.airspeed_timestamp = airspeed_raw.timestamp;
+			input_data.air_temperature_celsius = airspeed_raw.air_temperature_celsius;
 
 			/* update in_fixed_wing_flight for the current airspeed sensor validator */
 			/* takeoff situation is active from start till one of the sensors' IAS or groundspeed_EAS is above stall speed */
@@ -368,11 +368,11 @@ void AirspeedModule::update_params()
 			_param_west_airspeed_scale.set(_airspeed_validator[_valid_airspeed_index].get_EAS_scale());
 			_param_west_airspeed_scale.commit_no_notification();
 
-			mavlink_log_critical(&_mavlink_log_pub, "Airspeed: estimated scale: %1.2f. Saved in as ARSPV_ARSP_SCALE.",
-					     (double)_airspeed_validator[_valid_airspeed_index].get_EAS_scale());
+			mavlink_and_console_log_info(&_mavlink_log_pub, "Airspeed: estimated scale (ARSPV_ARSP_SCALE): %1.2f",
+						     (double)_airspeed_validator[_valid_airspeed_index].get_EAS_scale());
 
 		} else {
-			mavlink_log_critical(&_mavlink_log_pub, "Airspeed: can't estimate scale as no valid sensor.");
+			mavlink_and_console_log_info(&_mavlink_log_pub, "Airspeed: can't estimate scale as no valid sensor.");
 		}
 	}
 

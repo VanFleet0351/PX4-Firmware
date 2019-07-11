@@ -61,11 +61,11 @@ AirspeedValidator::update_airspeed_validator(struct airspeed_validator_update_da
 	}
 
 	update_wind_estimator_params();
+	update_EAS_scale();
+	update_EAS_TAS(input_data.air_pressure_pa, input_data.air_temperature_celsius);
 	update_wind_estimator(input_data.timestamp, input_data.airspeed_true_raw, input_data.lpos_valid, input_data.lpos_vx,
 			      input_data.lpos_vy,
 			      input_data.lpos_vz, input_data.lpos_evh, input_data.lpos_evv, input_data.att_q);
-	update_EAS_scale();
-	update_EAS_TAS(input_data.air_pressure_pa, input_data.air_temperature_celsius);
 	update_in_fixed_wing_flight(input_data.in_fixed_wing_flight);
 	check_airspeed_innovation(input_data.timestamp, input_data.vel_test_ratio, input_data.mag_test_ratio);
 	check_load_factor(input_data.accel_z);
