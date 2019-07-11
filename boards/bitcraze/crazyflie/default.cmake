@@ -39,7 +39,7 @@ px4_add_board(
 		sensors
 		sih
 		#vtol_att_control
-		wind_estimator
+		airspeed_selector
 
 	SYSTEMCMDS
 		bl_update
