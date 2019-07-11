@@ -1,11 +1,3 @@
-/**
- * Enable Airspeed Validator
- *
- * @boolean
- * @reboot_required true
- * @group Airspeed Validator
- */
-PARAM_DEFINE_INT32(WEST_EN, 1);
 
 /**
  * Airspeed Validator: Wind estimator wind process noise.

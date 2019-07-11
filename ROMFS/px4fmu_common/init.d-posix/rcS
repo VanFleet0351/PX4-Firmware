@@ -162,7 +162,6 @@ then
 	param set SENS_DPRES_OFF 0.001
 	param set SYS_RESTART_TYPE 2
 
-	param set WEST_EN 0
 fi
 
 # Adapt timeout parameters if simulation runs faster or slower than realtime.
