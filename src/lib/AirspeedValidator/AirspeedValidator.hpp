@@ -73,8 +73,8 @@ struct airspeed_validator_update_data {
 class AirspeedValidator
 {
 public:
-	AirspeedValidator();
-	~AirspeedValidator();
+	AirspeedValidator() = default;
+	~AirspeedValidator() = default;
 
 	float get_IAS() { return _IAS; }
 	float get_EAS() { return _EAS; }
@@ -87,7 +87,7 @@ public:
 	bool get_load_factor_check_fail() {return _load_factor_check_failed;}
 	float get_EAS_scale() {return _EAS_scale;}
 
-	void update_airspeed_validator(struct airspeed_validator_update_data &input_data);
+	void update_airspeed_validator(const airspeed_validator_update_data &input_data);
 
 	void update_air_temperature(float temperature) {_air_temperature_celsius = temperature;}
 	void update_air_pressure(float pressure) {_air_pressure_pa = pressure;}
@@ -95,7 +95,7 @@ public:
 	void update_wind_estimator_params();
 	void update_wind_estimator(uint64_t timestamp, float airspeed_true_raw, bool lpos_valid, float lpos_vx, float lpos_vy,
 				   float lpos_vz,
-				   float lpos_evh, float lpos_evv, float att_q[4]);
+				   float lpos_evh, float lpos_evv, const float att_q[4]);
 	wind_estimate_s get_wind_estimator_states(uint64_t timestamp);
 	void update_EAS_scale();
 	void update_EAS_TAS(float air_pressure_pa, float air_temperature_celsius);
@@ -150,7 +150,7 @@ private:
 
 	// states of data stopped check
 	bool _data_stopped_failed{false}; ///< data_stopp check has detected failure
-	uint64_t _previous_airspeed_timestamp{0}; ///< timestamp from previous measurement input, to check validity of measurement
+	hrt_abstime _previous_airspeed_timestamp{0}; ///< timestamp from previous measurement input, to check validity of measurement
 
 	// states of innovation check
 	bool _innovations_check_failed{false};  ///< true when airspeed innovations have failed consistency checks
@@ -165,13 +165,13 @@ private:
 
 	// states of load factor check
 	bool _load_factor_check_failed{false}; ///< load_factor check has detected failure
-	float _airspeed_stall{8.0}; ///< stall speed of aircraft used for load factor check
+	float _airspeed_stall{8.0f}; ///< stall speed of aircraft used for load factor check
 	float	_load_factor_ratio{0.5f};	///< ratio of maximum load factor predicted by stall speed to measured load factor
 
 	// states of airspeed valid declaration
 	bool _airspeed_valid{false}; ///< airspeed valid (pitot or groundspeed-windspeed)
-	int _checks_fail_delay{3}; ///< delay for airspeed invalid declaration after single check failure
-	int _checks_clear_delay{3}; ///< delay for airspeed valid declaration after all checks passed again
+	int _checks_fail_delay{3}; ///< delay for airspeed invalid declaration after single check failure (Sec)
+	int _checks_clear_delay{3}; ///< delay for airspeed valid declaration after all checks passed again (Sec)
 	bool		_airspeed_failing{false};	///< airspeed sensor checks have detected failure, but not yet declared failed
 	uint64_t	_time_checks_passed{0};	///< time the checks have last passed (uSec)
 	uint64_t	_time_checks_failed{0};	///< time the checks have last not passed (uSec)
