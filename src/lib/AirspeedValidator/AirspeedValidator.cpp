@@ -39,17 +39,9 @@
 
 #include "AirspeedValidator.hpp"
 
-AirspeedValidator::AirspeedValidator()
-{
-}
-
-AirspeedValidator::~AirspeedValidator()
-{
-}
-
 
 void
-AirspeedValidator::update_airspeed_validator(struct airspeed_validator_update_data &input_data)
+AirspeedValidator::update_airspeed_validator(const airspeed_validator_update_data &input_data)
 {
 	// get indicated airspeed from input data (raw airspeed)
 	_IAS = input_data.airspeed_indicated_raw;
@@ -88,7 +80,7 @@ AirspeedValidator::update_wind_estimator_params()
 void
 AirspeedValidator::update_wind_estimator(uint64_t time_now_usec, float airspeed_true_raw, bool lpos_valid,
 		float lpos_vx, float lpos_vy,
-		float lpos_vz, float lpos_evh, float lpos_evv, float att_q[4])
+		float lpos_vz, float lpos_evh, float lpos_evv, const float att_q[4])
 {
 	bool att_valid = true; // att_valid could also be a input_data state
 

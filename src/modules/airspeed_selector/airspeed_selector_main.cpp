@@ -91,10 +91,10 @@ public:
 	int print_status() override;
 
 private:
-#define NUM_AIRSPEED_SENSORS_MAX 3 /** Support max 3 airspeed sensors */
+	static constexpr int MAX_NUM_AIRSPEED_SENSORS = 3; /**< Support max 3 airspeed sensors */
 
 	orb_advert_t	_airspeed_validated_pub {nullptr};			/**< airspeed validated topic*/
-	orb_advert_t 	_wind_est_pub[NUM_AIRSPEED_SENSORS_MAX + 1] {nullptr};							/**< wind estimate topic (for each airspeed validator + purely sideslip fusion) */
+	orb_advert_t 	_wind_est_pub[MAX_NUM_AIRSPEED_SENSORS + 1] {};							/**< wind estimate topic (for each airspeed validator + purely sideslip fusion) */
 	orb_advert_t 	_mavlink_log_pub {nullptr}; 						/**< mavlink log topic*/
 
 	uORB::Subscription _estimator_status_sub{ORB_ID(estimator_status)};
@@ -107,7 +107,7 @@ private:
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
 	uORB::Subscription _vtol_vehicle_status_sub{ORB_ID(vtol_vehicle_status)};
 
-	estimator_status_s 	_estimator_status {};
+	estimator_status_s _estimator_status {};
 	parameter_update_s _parameter_update {};
 	sensor_bias_s _sensor_bias {};
 	vehicle_air_data_s _vehicle_air_data {};
@@ -120,7 +120,7 @@ private:
 	WindEstimator	_wind_estimator_sideslip; /**< wind estimator instance only fusing sideslip */
 	wind_estimate_s _wind_estimate_sideslip {}; /**< wind estimate message for wind estimator instance only fusing sideslip */
 
-	int _airspeed_sub[NUM_AIRSPEED_SENSORS_MAX] {0}; /**< raw airspeed topics subscriptions. Max 3 airspeeds sensors. */
+	int _airspeed_sub[MAX_NUM_AIRSPEED_SENSORS] {}; /**< raw airspeed topics subscriptions. Max 3 airspeeds sensors. */
 	int _number_of_airspeed_sensors{0}; /**<  number of airspeed sensors in use (detected during initialization)*/
 	AirspeedValidator *_airspeed_validator{nullptr}; /**< airspeedValidator instances (one for each sensor, assigned dynamically during startup) */
 
@@ -139,14 +139,14 @@ private:
 
 
 	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::ARSPV_W_P_NOISE>) _param_west_w_p_noise, /**<  */
-		(ParamFloat<px4::params::ARSPV_SC_P_NOISE>) _param_west_sc_p_noise, /**<  */
-		(ParamFloat<px4::params::ARSPV_TAS_NOISE>) _param_west_tas_noise, /**<  */
-		(ParamFloat<px4::params::ARSPV_BETA_NOISE>) _param_west_beta_noise, /**<  */
-		(ParamInt<px4::params::ARSPV_TAS_GATE>) _param_west_tas_gate, /**<  */
-		(ParamInt<px4::params::ARSPV_BETA_GATE>) _param_west_beta_gate, /**<  */
-		(ParamInt<px4::params::ARSPV_SCALE_EST>) _param_west_scale_estimation_on, /**<  */
-		(ParamFloat<px4::params::ARSPV_ARSP_SCALE>) _param_west_airspeed_scale, /**<  */
+		(ParamFloat<px4::params::ARSP_W_P_NOISE>) _param_west_w_p_noise,
+		(ParamFloat<px4::params::ARSP_SC_P_NOISE>) _param_west_sc_p_noise,
+		(ParamFloat<px4::params::ARSP_TAS_NOISE>) _param_west_tas_noise,
+		(ParamFloat<px4::params::ARSP_BETA_NOISE>) _param_west_beta_noise,
+		(ParamInt<px4::params::ARSP_TAS_GATE>) _param_west_tas_gate,
+		(ParamInt<px4::params::ARSP_BETA_GATE>) _param_west_beta_gate,
+		(ParamInt<px4::params::ARSP_SCALE_EST>) _param_west_scale_estimation_on,
+		(ParamFloat<px4::params::ARSP_ARSP_SCALE>) _param_west_airspeed_scale,
 
 
 		(ParamFloat<px4::params::COM_TAS_FS_INNOV>) _tas_innov_threshold, /**< innovation check threshold */
@@ -179,11 +179,9 @@ AirspeedModule::AirspeedModule():
 
 AirspeedModule::~AirspeedModule()
 {
-	_initialized = false;
-
 	ScheduleClear();
 
-	for (int i = 0; i < NUM_AIRSPEED_SENSORS_MAX; i++) {
+	for (int i = 0; i < MAX_NUM_AIRSPEED_SENSORS; i++) {
 		if (_wind_est_pub[i] != nullptr) {
 			orb_unadvertise(_wind_est_pub[i]);
 		}
@@ -192,7 +190,6 @@ AirspeedModule::~AirspeedModule()
 	orb_unadvertise(_airspeed_validated_pub);
 
 
-	// delete
 	perf_free(_perf_elapsed);
 	perf_free(_perf_interval);
 
@@ -204,7 +201,6 @@ AirspeedModule::~AirspeedModule()
 int
 AirspeedModule::task_spawn(int argc, char *argv[])
 {
-	/* schedule a cycle to start things */
 	AirspeedModule *dev = new AirspeedModule();
 
 	// check if the trampoline is called for the first time
@@ -234,7 +230,7 @@ AirspeedModule::Run()
 	 * instances (N = number of airspeed sensors detected)
 	 */
 	if (!_initialized) {
-		for (int i = 0; i < NUM_AIRSPEED_SENSORS_MAX; i++) {
+		for (int i = 0; i < MAX_NUM_AIRSPEED_SENSORS; i++) {
 			if (orb_exists(ORB_ID(airspeed), i) != 0) {
 				continue;
 			}
@@ -361,14 +357,14 @@ void AirspeedModule::update_params()
 		_airspeed_validator[i].set_airspeed_stall(_airspeed_stall.get());
 	}
 
-	/* If one sensor is valid and we switched out of scale estimation, then publish message and change the value of param ARSPV_ARSP_SCALE */
+	/* If one sensor is valid and we switched out of scale estimation, then publish message and change the value of param ARSP_ARSP_SCALE */
 	if (_scale_estimation_previously_on && !_param_west_scale_estimation_on.get()) {
 		if (_valid_airspeed_index >= 0) {
 
 			_param_west_airspeed_scale.set(_airspeed_validator[_valid_airspeed_index].get_EAS_scale());
 			_param_west_airspeed_scale.commit_no_notification();
 
-			mavlink_and_console_log_info(&_mavlink_log_pub, "Airspeed: estimated scale (ARSPV_ARSP_SCALE): %1.2f",
+			mavlink_and_console_log_info(&_mavlink_log_pub, "Airspeed: estimated scale (ARSP_ARSP_SCALE): %0.2f",
 						     (double)_airspeed_validator[_valid_airspeed_index].get_EAS_scale());
 
 		} else {
@@ -390,8 +386,7 @@ void AirspeedModule::poll_topics()
 	_vtol_vehicle_status_sub.update(&_vtol_vehicle_status);
 	_vehicle_local_position_sub.update(&_vehicle_local_position);
 
-	const hrt_abstime time_now_usec = hrt_absolute_time();
-	_vehicle_local_position_valid = (time_now_usec - _vehicle_local_position.timestamp < 1_s)
+	_vehicle_local_position_valid = (hrt_absolute_time() - _vehicle_local_position.timestamp < 1_s)
 					&& (_vehicle_local_position.timestamp > 0) && _vehicle_local_position.v_xy_valid;
 
 }
@@ -485,7 +480,7 @@ void AirspeedModule::select_airspeed_and_publish()
 	/* fill out airspeed_validated message for publishing it */
 	airspeed_validated_s airspeed_validated = {};
 	airspeed_validated.timestamp = hrt_absolute_time();
-	airspeed_validated.ground_minus_wind = _ground_minus_wind_TAS;
+	airspeed_validated.ground_minus_wind_m_s = _ground_minus_wind_TAS;
 	airspeed_validated.selected_airspeed_index = _valid_airspeed_index;
 
 	switch (_valid_airspeed_index) {
@@ -557,7 +552,7 @@ equivalend (EAS), true airspeed (TAS) and the information if the estimation curr
 is invalid and if based sensor readings or on groundspeed minus windspeed.
 Supporting the input of multiple "raw" airspeed inputs, this module automatically switches
 to a valid sensor in case of failure detection. For failure detection as well as for
-the estimation of a scale factor from IAS to EAS, it runns several wind estimators
+the estimation of a scale factor from IAS to EAS, it runs several wind estimators
 and also publishes those.
 
 )DESCR_STR");
