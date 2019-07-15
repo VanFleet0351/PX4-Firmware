@@ -155,7 +155,7 @@ AirspeedValidator::check_airspeed_innovation(uint64_t time_now, float estimator_
 
 	/* Wait 2s after wind estiamtor was initialzed or reset until innovation checks are done.
 		TO DO: base this on actual wind states variance, not just time.*/
-	if (!_in_fixed_wing_flight || (hrt_elapsed_time(&_time_wind_estimator_initialized) < 2000_ms)) {
+	if (!_in_fixed_wing_flight || ((time_now - _time_wind_estimator_initialized) < 2000_ms)) {
 		// not in a flight condition that enables use of this check, thus pass check
 		_innovations_check_failed = false;
 		_time_last_tas_pass = time_now;
@@ -164,7 +164,7 @@ AirspeedValidator::check_airspeed_innovation(uint64_t time_now, float estimator_
 		_time_last_aspd_innov_check = time_now;
 
 	} else {
-		float dt_s = math::constrain((time_now - _time_last_aspd_innov_check) / 1e6f, 0.01f, 1.0f); // limit to 1Hz...100Hz
+		float dt_s = math::max((time_now - _time_last_aspd_innov_check) / 1e6f, 0.01f); // limit to 100Hz
 
 		if (dt_s < 1.0f) {
 			float tas_innov_abs = fabsf(_wind_estimator.get_tas_innov());
@@ -187,10 +187,10 @@ AirspeedValidator::check_airspeed_innovation(uint64_t time_now, float estimator_
 			}
 
 			if (!_innovations_check_failed) {
-				_innovations_check_failed = (hrt_elapsed_time(&_time_last_tas_pass) > TAS_INNOV_FAIL_DELAY);
+				_innovations_check_failed = (time_now - _time_last_tas_pass) > TAS_INNOV_FAIL_DELAY;
 
 			} else {
-				_innovations_check_failed = (hrt_elapsed_time(&_time_last_tas_fail) < TAS_INNOV_FAIL_DELAY);
+				_innovations_check_failed = (time_now - _time_last_tas_fail) < TAS_INNOV_FAIL_DELAY;
 			}
 		}
 
@@ -206,10 +206,8 @@ AirspeedValidator::check_load_factor(float accel_z)
 
 	bool bad_number_fail = false; // disable this for now
 
-	if (!_in_fixed_wing_flight) {
-		_load_factor_ratio = 0.5f; // reset if not in fixed-wing flight (and not in takeoff condition)
+	if (_in_fixed_wing_flight) {
 
-	} else {
 		if (!bad_number_fail) {
 			float max_lift_ratio = fmaxf(_EAS, 0.7f) / fmaxf(_airspeed_stall, 1.0f);
 			max_lift_ratio *= max_lift_ratio;
@@ -221,21 +219,26 @@ AirspeedValidator::check_load_factor(float accel_z)
 		} else {
 			_load_factor_check_failed = true; // bad number fail
 		}
+
+	} else {
+
+		_load_factor_ratio = 0.5f; // reset if not in fixed-wing flight (and not in takeoff condition)
 	}
+
 }
 
 
 void
-AirspeedValidator::update_airspeed_valid_status(uint64_t timestamp)
+AirspeedValidator::update_airspeed_valid_status(const uint64_t timestamp)
 {
 
 	bool bad_number_fail = false; // disable this for now
 
 	// Check if sensor data is missing - assume a minimum 5Hz data rate.
-	const bool data_missing = (hrt_elapsed_time(&_time_last_airspeed) > 200_ms);
+	const bool data_missing = (timestamp - _time_last_airspeed) > 200_ms;
 
 	// Declare data stopped if not received for longer than 1 second
-	_data_stopped_failed = (hrt_elapsed_time(&_time_last_airspeed) > 1_s);
+	_data_stopped_failed = (timestamp - _time_last_airspeed) > 1_s;
 
 	if (_innovations_check_failed || _load_factor_check_failed || data_missing || bad_number_fail) {
 		// either innovation, load factor or data missing check failed, so declare airspeed failing and record timestamp
@@ -256,14 +259,14 @@ AirspeedValidator::update_airspeed_valid_status(uint64_t timestamp)
 
 		// Because the innovation, load factor and data missing checks are subject to short duration false positives
 		// a timeout period is applied.
-		const bool single_check_fail_timeout = (hrt_elapsed_time(&_time_checks_passed) > (_checks_fail_delay * 1_s));
+		const bool single_check_fail_timeout = (timestamp - _time_checks_passed) > _checks_fail_delay * 1_s;
 
 		if (_data_stopped_failed || both_checks_failed || single_check_fail_timeout || bad_number_fail) {
 
 			_airspeed_valid = false;
 		}
 
-	} else if (hrt_elapsed_time(&_time_checks_failed) > (_checks_clear_delay * 1_s)) {
+	} else if ((timestamp - _time_checks_failed) > _checks_clear_delay * 1_s) {
 		_airspeed_valid = true;
 	}
 }
