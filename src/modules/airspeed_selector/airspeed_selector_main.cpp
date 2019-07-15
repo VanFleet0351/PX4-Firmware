@@ -389,6 +389,8 @@ void AirspeedModule::poll_topics()
 	_vehicle_local_position_valid = (hrt_absolute_time() - _vehicle_local_position.timestamp < 1_s)
 					&& (_vehicle_local_position.timestamp > 0) && _vehicle_local_position.v_xy_valid;
 
+
+
 }
 
 void AirspeedModule::update_wind_estimator_sideslip()
@@ -480,32 +482,29 @@ void AirspeedModule::select_airspeed_and_publish()
 	/* fill out airspeed_validated message for publishing it */
 	airspeed_validated_s airspeed_validated = {};
 	airspeed_validated.timestamp = hrt_absolute_time();
-	airspeed_validated.ground_minus_wind_m_s = _ground_minus_wind_TAS;
+	airspeed_validated.true_ground_minus_wind_m_s = NAN;
+	airspeed_validated.indicated_ground_minus_wind_m_s = NAN;
+	airspeed_validated.indicated_airspeed_m_s = NAN;
+	airspeed_validated.equivalent_airspeed_m_s = NAN;
+	airspeed_validated.true_airspeed_m_s = NAN;
+
 	airspeed_validated.selected_airspeed_index = _valid_airspeed_index;
 
 	switch (_valid_airspeed_index) {
 	case -2:
-		airspeed_validated.airspeed_sensor_measurement_valid = false;
-		airspeed_validated.airspeed_valid = false;
-		airspeed_validated.indicated_airspeed_m_s = 0.0f;
-		airspeed_validated.equivalent_airspeed_m_s = 0.0f;
-		airspeed_validated.true_airspeed_m_s = 0.0f;
 		break;
 
 	case -1:
-		airspeed_validated.airspeed_sensor_measurement_valid = false;
-		airspeed_validated.airspeed_valid = true;
-		airspeed_validated.indicated_airspeed_m_s = _ground_minus_wind_EAS;
-		airspeed_validated.equivalent_airspeed_m_s = _ground_minus_wind_EAS;
-		airspeed_validated.true_airspeed_m_s = _ground_minus_wind_TAS;
+		airspeed_validated.true_ground_minus_wind_m_s = _ground_minus_wind_TAS;
+		airspeed_validated.indicated_ground_minus_wind_m_s = _ground_minus_wind_EAS;
 		break;
 
 	default:
-		airspeed_validated.airspeed_sensor_measurement_valid = true;
-		airspeed_validated.airspeed_valid = true; // whats a good check for the validity of ground-wind speed?
 		airspeed_validated.indicated_airspeed_m_s = _airspeed_validator[_valid_airspeed_index].get_IAS();
 		airspeed_validated.equivalent_airspeed_m_s = _airspeed_validator[_valid_airspeed_index].get_EAS();
 		airspeed_validated.true_airspeed_m_s = _airspeed_validator[_valid_airspeed_index].get_TAS();
+		airspeed_validated.true_ground_minus_wind_m_s = _ground_minus_wind_TAS;
+		airspeed_validated.indicated_ground_minus_wind_m_s = _ground_minus_wind_EAS;
 		break;
 	}
 

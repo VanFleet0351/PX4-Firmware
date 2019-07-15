@@ -2,7 +2,7 @@
 /**
  * Airspeed Selector: Wind estimator wind process noise
  *
- * Wind process noise of the intrenal wind estimator(s) of the airspeed selector.
+ * Wind process noise of the internal wind estimator(s) of the airspeed selector.
  *
  * @min 0
  * @max 1
@@ -14,10 +14,11 @@ PARAM_DEFINE_FLOAT(ARSP_W_P_NOISE, 0.1f);
 /**
  * Airspeed Selector: Wind estimator true airspeed scale process noise
  *
- * Airspeed scale process noise of the intrenal wind estimator(s) of the airspeed selector.
+ * Airspeed scale process noise of the internal wind estimator(s) of the airspeed selector.
  *
  * @min 0
  * @max 0.1
+ * @unit 1/s
  * @group Airspeed Validator
  */
 PARAM_DEFINE_FLOAT(ARSP_SC_P_NOISE, 0.0001);
@@ -25,7 +26,7 @@ PARAM_DEFINE_FLOAT(ARSP_SC_P_NOISE, 0.0001);
 /**
  * Airspeed Selector: Wind estimator true airspeed measurement noise
  *
- * True airspeed measurement noise of the intrenal wind estimator(s) of the airspeed selector.
+ * True airspeed measurement noise of the internal wind estimator(s) of the airspeed selector.
  *
  * @min 0
  * @max 4
@@ -37,7 +38,7 @@ PARAM_DEFINE_FLOAT(ARSP_TAS_NOISE, 1.4);
 /**
  * Airspeed Selector: Wind estimator sideslip measurement noise
  *
- * Sideslip measurement noise of the intrenal wind estimator(s) of the airspeed selector.
+ * Sideslip measurement noise of the internal wind estimator(s) of the airspeed selector.
  *
  * @min 0
  * @max 1

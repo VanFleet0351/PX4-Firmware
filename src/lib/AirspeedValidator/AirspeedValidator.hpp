@@ -102,7 +102,7 @@ public:
 	void check_airspeed_innovation(uint64_t timestamp, float estimator_status_vel_test_ratio,
 				       float estimator_status_mag_test_ratio);
 	void check_load_factor(float accel_z);
-	void update_airspeed_valid_status(uint64_t timestamp);
+	void update_airspeed_valid_status(const uint64_t timestamp);
 
 	void set_wind_estimator_wind_p_noise(float wind_sigma) { _wind_estimator_wind_p_sigma = wind_sigma; }
 	void set_wind_estimator_tas_scale_p_noise(float tas_scale_sigma) { _wind_estimator_tas_scale_p_sigma = tas_scale_sigma; }
