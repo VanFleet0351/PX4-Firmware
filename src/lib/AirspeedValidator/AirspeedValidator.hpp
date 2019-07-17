@@ -111,7 +111,7 @@ public:
 	void set_wind_estimator_tas_gate(uint8_t gate_size) { _wind_estimator_tas_gate = gate_size; }
 	void set_wind_estimator_beta_gate(uint8_t gate_size) { _wind_estimator_beta_gate = gate_size; }
 	void set_wind_estimator_scale_estimation_on(bool scale_estimation_on) {_wind_estimator_scale_estimation_on = scale_estimation_on;}
-	void set_airspeed_scale(float airspeed_scale_manual) {_airspeed_scale_manual = airspeed_scale_manual;}
+	void set_airspeed_scale(float airspeed_scale_manual) { _wind_estimator.enforce_airspeed_scale(airspeed_scale_manual);}
 
 
 	void set_tas_innov_threshold(float tas_innov_threshold) { _tas_innov_threshold = tas_innov_threshold; }
@@ -135,8 +135,6 @@ private:
 	uint8_t _wind_estimator_tas_gate{3};	///< airspeed fusion gate size
 	uint8_t _wind_estimator_beta_gate{1};	///< sideslip fusion gate size
 	bool _wind_estimator_scale_estimation_on{false};	///< online scale estimation (IAS-->CAS/EAS) is on
-	float _airspeed_scale_manual{1.0f};	///< manually enered value for airspeed scale (IAS-->CAS/EAS)
-
 
 	// general states
 	bool _in_fixed_wing_flight{false}; ///< variable to bypass innovation and load factor checks

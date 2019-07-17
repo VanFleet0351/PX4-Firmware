@@ -335,7 +335,6 @@ void AirspeedModule::update_params()
 	_wind_estimator_sideslip.set_beta_noise(_param_west_beta_noise.get());
 	_wind_estimator_sideslip.set_tas_gate(_param_west_tas_gate.get());
 	_wind_estimator_sideslip.set_beta_gate(_param_west_beta_gate.get());
-	_wind_estimator_sideslip.set_scale_estimation_on(false);
 
 	/* update airspeedValidator parameters */
 	for (int i = 0; i < _number_of_airspeed_sensors; i++) {
@@ -363,6 +362,7 @@ void AirspeedModule::update_params()
 
 			_param_west_airspeed_scale.set(_airspeed_validator[_valid_airspeed_index].get_EAS_scale());
 			_param_west_airspeed_scale.commit_no_notification();
+			_airspeed_validator[_valid_airspeed_index].set_airspeed_scale(_param_west_airspeed_scale.get());
 
 			mavlink_and_console_log_info(&_mavlink_log_pub, "Airspeed: estimated scale (ARSP_ARSP_SCALE): %0.2f",
 						     (double)_airspeed_validator[_valid_airspeed_index].get_EAS_scale());

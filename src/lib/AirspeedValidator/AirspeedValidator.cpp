@@ -74,7 +74,6 @@ AirspeedValidator::update_wind_estimator_params()
 	_wind_estimator.set_beta_noise(_wind_estimator_beta_sigma);
 	_wind_estimator.set_tas_gate(_wind_estimator_tas_gate);
 	_wind_estimator.set_beta_gate(_wind_estimator_beta_gate);
-	_wind_estimator.set_scale_estimation_on(_wind_estimator_scale_estimation_on);
 }
 
 void
@@ -126,13 +125,7 @@ AirspeedValidator::get_wind_estimator_states(uint64_t timestamp)
 void
 AirspeedValidator::update_EAS_scale()
 {
-	if (_wind_estimator_scale_estimation_on) {
-		_EAS_scale = 1.0f / math::constrain(_wind_estimator.get_tas_scale(), 0.75f, 1.25f);
-
-	} else {
-		_EAS_scale = _airspeed_scale_manual;
-	}
-
+	_EAS_scale = 1.0f / math::constrain(_wind_estimator.get_tas_scale(), 0.75f, 1.25f);
 }
 
 void
