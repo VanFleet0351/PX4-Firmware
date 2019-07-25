@@ -259,7 +259,7 @@ void PositionControl::_velocityController(const float &dt)
 
 	// Consider thrust in D-direction.
 	float thrust_desired_D = _param_mpc_z_vel_p.get() * vel_err(2) +  _param_mpc_z_vel_d.get() * _vel_dot(2) + _thr_int(
-					 2) - _param_mpc_thr_hover.get();
+					 2) - _status.hover_thr_estimate;
 
 	// The Thrust limits are negated and swapped due to NED-frame.
 	float uMax = -_param_mpc_thr_min.get();
@@ -279,8 +279,14 @@ void PositionControl::_velocityController(const float &dt)
 		_thr_int(2) = math::min(fabsf(_thr_int(2)), _param_mpc_thr_max.get()) * math::sign(_thr_int(2));
 	}
 
+	const float hover_thr_est_gain = 0.1f;
+	_status.hover_thr_est_gain = math::min(hover_thr_est_gain * powf(10.f, 0.5f - fabsf(_vel(2))), hover_thr_est_gain);
+	_status.hover_thr_estimate += -_thr_int(2) * hover_thr_est_gain * dt;
+
 	// Saturate thrust setpoint in D-direction.
 	_thr_sp(2) = math::constrain(thrust_desired_D, uMin, uMax);
+
+	_status.thr_int = _thr_int(2);
 
 	if (PX4_ISFINITE(_thr_sp(0)) && PX4_ISFINITE(_thr_sp(1))) {
 		// Thrust set-point in NE-direction is already provided. Only
@@ -354,4 +360,8 @@ void PositionControl::updateConstraints(const vehicle_constraints_s &constraints
 void PositionControl::updateParams()
 {
 	ModuleParams::updateParams();
+
+	if (_status.hover_thr_estimate < FLT_EPSILON) {
+		_status.hover_thr_estimate = _param_mpc_thr_hover.get();
+	}
 }

@@ -76,7 +76,6 @@ MulticopterLandDetector::MulticopterLandDetector()
 	_paramHandle.maxVelocity = param_find("LNDMC_XY_VEL_MAX");
 	_paramHandle.maxClimbRate = param_find("LNDMC_Z_VEL_MAX");
 	_paramHandle.minThrottle = param_find("MPC_THR_MIN");
-	_paramHandle.hoverThrottle = param_find("MPC_THR_HOVER");
 	_paramHandle.minManThrottle = param_find("MPC_MANTHR_MIN");
 	_paramHandle.freefall_acc_threshold = param_find("LNDMC_FFALL_THR");
 	_paramHandle.freefall_trigger_time = param_find("LNDMC_FFALL_TTRI");
@@ -99,6 +98,7 @@ void MulticopterLandDetector::_update_topics()
 	_vehicle_control_mode_sub.update(&_control_mode);
 	_vehicle_local_position_sub.update(&_vehicle_local_position);
 	_vehicle_local_position_setpoint_sub.update(&_vehicle_local_position_setpoint);
+	_mc_position_controller_status_sub.update(&_mc_pos_ctrl_status);
 }
 
 void MulticopterLandDetector::_update_params()
@@ -108,7 +108,6 @@ void MulticopterLandDetector::_update_params()
 	param_get(_paramHandle.maxRotation, &_params.maxRotation_rad_s);
 	_params.maxRotation_rad_s = math::radians(_params.maxRotation_rad_s);
 	param_get(_paramHandle.minThrottle, &_params.minThrottle);
-	param_get(_paramHandle.hoverThrottle, &_params.hoverThrottle);
 	param_get(_paramHandle.minManThrottle, &_params.minManThrottle);
 	param_get(_paramHandle.freefall_acc_threshold, &_params.freefall_acc_threshold);
 	param_get(_paramHandle.freefall_trigger_time, &_params.freefall_trigger_time);
@@ -304,7 +303,7 @@ bool MulticopterLandDetector::_is_climb_rate_enabled()
 bool MulticopterLandDetector::_has_low_thrust()
 {
 	// 30% of throttle range between min and hover
-	float sys_min_throttle = _params.minThrottle + (_params.hoverThrottle - _params.minThrottle) *
+	float sys_min_throttle = _params.minThrottle + (_mc_pos_ctrl_status.hover_thr_estimate - _params.minThrottle) *
 				 _params.low_thrust_threshold;
 
 	// Check if thrust output is less than the minimum auto throttle param.
@@ -314,7 +313,7 @@ bool MulticopterLandDetector::_has_low_thrust()
 bool MulticopterLandDetector::_has_minimal_thrust()
 {
 	// 10% of throttle range between min and hover once we entered ground contact
-	float sys_min_throttle = _params.minThrottle + (_params.hoverThrottle - _params.minThrottle) * 0.1f;
+	float sys_min_throttle = _params.minThrottle + (_mc_pos_ctrl_status.hover_thr_estimate - _params.minThrottle) * 0.1f;
 
 	// Determine the system min throttle based on flight mode
 	if (!_control_mode.flag_control_climb_rate_enabled) {

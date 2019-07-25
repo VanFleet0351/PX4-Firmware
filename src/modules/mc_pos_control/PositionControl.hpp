@@ -42,6 +42,7 @@
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_local_position_setpoint.h>
 #include <uORB/topics/vehicle_constraints.h>
+#include <uORB/topics/mc_position_controller_status.h>
 #include <px4_module_params.h>
 #pragma once
 
@@ -191,6 +192,13 @@ public:
 		return pos_sp;
 	}
 
+	/**
+	 * 	Get the
+	 * 	@see mc_position_controller_status
+	 * 	@return The mc_position_controller_status message
+	 */
+	const mc_position_controller_status_s &getStatus() { return _status; }
+
 protected:
 
 	void updateParams() override;
@@ -222,6 +230,7 @@ private:
 	bool _skip_controller{false}; /**< skips position/velocity controller. true for stabilized mode */
 	bool _ctrl_pos[3] = {true, true, true}; /**< True if the control-loop for position was used */
 	bool _ctrl_vel[3] = {true, true, true}; /**< True if the control-loop for velocity was used */
+	mc_position_controller_status_s _status{};
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::MPC_THR_MAX>) _param_mpc_thr_max,

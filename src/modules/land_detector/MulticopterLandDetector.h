@@ -56,6 +56,7 @@
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_local_position.h>
+#include <uORB/topics/mc_position_controller_status.h>
 
 using namespace time_literals;
 
@@ -100,7 +101,6 @@ private:
 		param_t maxVelocity;
 		param_t maxRotation;
 		param_t minThrottle;
-		param_t hoverThrottle;
 		param_t minManThrottle;
 		param_t freefall_acc_threshold;
 		param_t freefall_trigger_time;
@@ -114,7 +114,6 @@ private:
 		float maxVelocity;
 		float maxRotation_rad_s;
 		float minThrottle;
-		float hoverThrottle;
 		float minManThrottle;
 		float freefall_acc_threshold;
 		float freefall_trigger_time;
@@ -130,6 +129,7 @@ private:
 	uORB::Subscription _vehicle_control_mode_sub{ORB_ID(vehicle_control_mode)};
 	uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
 	uORB::Subscription _vehicle_local_position_setpoint_sub{ORB_ID(vehicle_local_position_setpoint)};
+	uORB::Subscription _mc_position_controller_status_sub{ORB_ID(mc_position_controller_status)};
 
 	actuator_controls_s               _actuator_controls {};
 	battery_status_s                  _battery_status {};
@@ -138,6 +138,7 @@ private:
 	vehicle_attitude_s                _vehicle_attitude {};
 	vehicle_local_position_s          _vehicle_local_position {};
 	vehicle_local_position_setpoint_s _vehicle_local_position_setpoint {};
+	mc_position_controller_status_s   _mc_pos_ctrl_status {};
 
 	hrt_abstime _min_trust_start{0};		///< timestamp when minimum trust was applied first
 	hrt_abstime _landed_time{0};

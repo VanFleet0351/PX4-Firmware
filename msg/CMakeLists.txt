@@ -85,6 +85,7 @@ set(msg_files
 	ping.msg
 	position_controller_landing_status.msg
 	position_controller_status.msg
+	mc_position_controller_status.msg
 	position_setpoint.msg
 	position_setpoint_triplet.msg
 	power_button_state.msg

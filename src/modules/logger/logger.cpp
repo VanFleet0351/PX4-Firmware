@@ -626,6 +626,7 @@ void Logger::add_default_topics()
 	add_topic("vehicle_land_detected");
 	add_topic("vehicle_local_position", 100);
 	add_topic("vehicle_local_position_setpoint", 100);
+	add_topic("mc_position_controller_status");
 	add_topic("vehicle_magnetometer", 200);
 	add_topic("vehicle_rates_setpoint", 30);
 	add_topic("vehicle_status", 200);

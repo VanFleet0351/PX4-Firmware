@@ -58,6 +58,7 @@
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vehicle_trajectory_waypoint.h>
 #include <uORB/topics/landing_gear.h>
+#include <uORB/topics/mc_position_controller_status.h>
 
 #include <float.h>
 #include <mathlib/mathlib.h>
@@ -116,6 +117,8 @@ private:
 	uORB::Publication<landing_gear_s>			_landing_gear_pub{ORB_ID(landing_gear)};
 	uORB::Publication<vehicle_local_position_setpoint_s>	_local_pos_sp_pub{ORB_ID(vehicle_local_position_setpoint)};	/**< vehicle local position setpoint publication */
 	uORB::Publication<vehicle_local_position_setpoint_s>	_traj_sp_pub{ORB_ID(trajectory_setpoint)};			/**< trajectory setpoints publication */
+	uORB::Publication<mc_position_controller_status_s>	_mc_pos_ctrl_status_pub{ORB_ID(mc_position_controller_status)};	/**< position controller status publication */
+
 
 	int		_local_pos_sub{-1};			/**< vehicle local position */
 
@@ -667,6 +670,11 @@ MulticopterPositionControl::run()
 			// This message will be used by other modules (such as Landdetector) to determine
 			// vehicle intention.
 			_local_pos_sp_pub.publish(local_pos_sp);
+
+			mc_position_controller_status_s mc_position_controller_status;
+			mc_position_controller_status = _control.getStatus();
+			mc_position_controller_status.timestamp = local_pos_sp.timestamp;
+			_mc_pos_ctrl_status_pub.publish(mc_position_controller_status);
 
 			// Inform FlightTask about the input and output of the velocity controller
 			// This is used to properly initialize the velocity setpoint when onpening the position loop (position unlock)
