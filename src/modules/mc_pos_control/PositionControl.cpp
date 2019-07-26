@@ -279,14 +279,37 @@ void PositionControl::_velocityController(const float &dt)
 		_thr_int(2) = math::min(fabsf(_thr_int(2)), _param_mpc_thr_max.get()) * math::sign(_thr_int(2));
 	}
 
-	const float hover_thr_est_gain = 0.1f;
-	_status.hover_thr_est_gain = math::min(hover_thr_est_gain * powf(10.f, 0.5f - fabsf(_vel(2))), hover_thr_est_gain);
-	_status.hover_thr_estimate += -_thr_int(2) * hover_thr_est_gain * dt;
-
 	// Saturate thrust setpoint in D-direction.
 	_thr_sp(2) = math::constrain(thrust_desired_D, uMin, uMax);
 
 	_status.thr_int = _thr_int(2);
+	_status.vel_dot = _vel_dot(2);
+	_status.thr_sp = _thr_sp(2);
+	_status.pos = _pos(2);
+	if (!_status.hover_thr_est_init) {
+		// Fast initialization of the hover thrust estimator. We need to fly at at least 1m above ground
+		// and have a vertical acceleration lower than 0.1 m/s2
+		if (fabsf(_vel_dot(2)) < 0.5f && -_thr_sp(2) > _param_mpc_thr_min.get() && -_pos(2) > 1.f) {
+			_status.hover_thr_estimate = _status.hover_thr_estimate * 0.9f - _thr_sp(2) * 0.1f;
+			_status.hover_thr_estimate = math::constrain(_status.hover_thr_estimate,
+								    _param_mpc_thr_hover.get() - 0.2f,
+								    _param_mpc_thr_hover.get() + 0.2f);
+			_status.hover_thr_est_samples++;
+
+			if (_status.hover_thr_est_samples > 20) {
+				// The initialization sequence is expected to be accurate enough with 20 sampling points
+				_status.hover_thr_est_init = true;
+			}
+		}
+
+	} else {
+		// Slow estimator that removes the steady-state offset of the integrator
+		_status.hover_thr_est_gain = math::min(0.1f * powf(10.f, 0.5f - fabsf(_vel(2))), 0.1f);
+		_status.hover_thr_estimate += -_thr_int(2) * _status.hover_thr_est_gain * dt;
+	}
+
+	// TODO: remove that, just for logging
+	_status.hover_thr_estimate_acc = _status.hover_thr_estimate_acc * 0.6f - _thr_sp(2) * 0.4f;
 
 	if (PX4_ISFINITE(_thr_sp(0)) && PX4_ISFINITE(_thr_sp(1))) {
 		// Thrust set-point in NE-direction is already provided. Only
