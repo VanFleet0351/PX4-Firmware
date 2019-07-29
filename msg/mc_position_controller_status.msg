@@ -10,4 +10,5 @@ float32 pos
 float32 hover_thr_estimate_acc
 float32 vel_dot
 uint32 hover_thr_est_samples
+float32 hover_thr_est_avg
 bool hover_thr_est_init

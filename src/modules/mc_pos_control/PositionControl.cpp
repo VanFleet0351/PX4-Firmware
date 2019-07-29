@@ -286,20 +286,34 @@ void PositionControl::_velocityController(const float &dt)
 	_status.vel_dot = _vel_dot(2);
 	_status.thr_sp = _thr_sp(2);
 	_status.pos = _pos(2);
+
 	if (!_status.hover_thr_est_init) {
 		// Fast initialization of the hover thrust estimator. We need to fly at at least 1m above ground
-		// and have a vertical acceleration lower than 0.1 m/s2
-		if (fabsf(_vel_dot(2)) < 0.5f && -_thr_sp(2) > _param_mpc_thr_min.get() && -_pos(2) > 1.f) {
-			_status.hover_thr_estimate = _status.hover_thr_estimate * 0.9f - _thr_sp(2) * 0.1f;
-			_status.hover_thr_estimate = math::constrain(_status.hover_thr_estimate,
-								    _param_mpc_thr_hover.get() - 0.2f,
-								    _param_mpc_thr_hover.get() + 0.2f);
+		// and have a vertical acceleration lower than 0.5 m/s2
+		if (fabsf(_vel_dot(2)) < 0.5f &&
+		    -_thr_sp(2) > _param_mpc_thr_min.get() &&
+		    -_pos(2) > 1.f
+		    && _status.hover_thr_est_samples < 20) {
+			const int n = _status.hover_thr_est_samples;
+			// Add sample to the average filter
+			_status.hover_thr_est_avg = (_status.hover_thr_est_avg * n - _thr_sp(2)) / (n + 1);
+			_status.hover_thr_est_avg = math::constrain(_status.hover_thr_est_avg,
+							    _param_mpc_thr_hover.get() - 0.2f,
+							    _param_mpc_thr_hover.get() + 0.2f);
 			_status.hover_thr_est_samples++;
+		}
 
-			if (_status.hover_thr_est_samples > 20) {
-				// The initialization sequence is expected to be accurate enough with 20 sampling points
-				_status.hover_thr_est_init = true;
-			}
+		if (_status.hover_thr_est_samples > 0) {
+			const float d_thr_max = 0.1f * dt;
+			_status.hover_thr_estimate = math::constrain(_status.hover_thr_est_avg,
+								     _status.hover_thr_estimate - d_thr_max,
+								     _status.hover_thr_estimate + d_thr_max);
+		}
+
+		if (_status.hover_thr_est_samples >= 20 &&
+		    fabsf(_status.hover_thr_estimate - _status.hover_thr_est_avg) < FLT_EPSILON) {
+			// The initialization sequence is expected to be accurate enough with 20 sampling points
+			_status.hover_thr_est_init = true;
 		}
 
 	} else {
