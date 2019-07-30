@@ -292,8 +292,8 @@ void PositionControl::_velocityController(const float &dt)
 		// and have a vertical acceleration lower than 0.5 m/s2
 		if (fabsf(_vel_dot(2)) < 0.5f &&
 		    -_thr_sp(2) > _param_mpc_thr_min.get() &&
-		    -_pos(2) > 1.f
-		    && _status.hover_thr_est_samples < 20) {
+		    -_pos(2) > 1.f &&
+		    _status.hover_thr_est_samples < 20) {
 			const int n = _status.hover_thr_est_samples;
 			// Add sample to the average filter
 			_status.hover_thr_est_avg = (_status.hover_thr_est_avg * n - _thr_sp(2)) / (n + 1);
@@ -321,9 +321,6 @@ void PositionControl::_velocityController(const float &dt)
 		_status.hover_thr_est_gain = math::min(0.1f * powf(10.f, 0.5f - fabsf(_vel(2))), 0.1f);
 		_status.hover_thr_estimate += -_thr_int(2) * _status.hover_thr_est_gain * dt;
 	}
-
-	// TODO: remove that, just for logging
-	_status.hover_thr_estimate_acc = _status.hover_thr_estimate_acc * 0.6f - _thr_sp(2) * 0.4f;
 
 	if (PX4_ISFINITE(_thr_sp(0)) && PX4_ISFINITE(_thr_sp(1))) {
 		// Thrust set-point in NE-direction is already provided. Only
