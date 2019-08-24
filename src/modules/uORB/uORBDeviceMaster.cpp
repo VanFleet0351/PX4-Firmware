@@ -231,28 +231,56 @@ int uORB::DeviceMaster::addNewDeviceNodes(DeviceNodeStatisticsData **first_node,
 			}
 		}
 
-		if (last_node) {
-			last_node->next = new DeviceNodeStatisticsData();
-			last_node = last_node->next;
+		DeviceNodeStatisticsData *node_stats = new DeviceNodeStatisticsData();
+		node_stats->node = node;
 
-		} else {
-			*first_node = last_node = new DeviceNodeStatisticsData();
-		}
-
-		if (!last_node) {
+		if (!node_stats) {
 			return -ENOMEM;
 		}
 
-		last_node->node = node;
+		if (last_node) {
+			DeviceNodeStatisticsData *next_node_name = *first_node;
+			bool inserted = false;
 
-		size_t name_length = strlen(last_node->node->get_meta()->o_name);
+			while (next_node_name && !inserted) {
+				if (next_node_name->next == nullptr) {
+					// insert last
+					next_node_name->next = node_stats;
+					inserted = true;
+
+				} else {
+					int ret_before = strcmp(next_node_name->node->get_name(), node_stats->node->get_name());
+					int ret_after = strcmp(next_node_name->next->node->get_name(), node_stats->node->get_name());
+
+					if (ret_before >= 0 && ret_after >= 0) {
+						// insert first
+						node_stats->next = *first_node;
+						*first_node = node_stats;
+						inserted = true;
+
+					} else if (ret_before <= 0 && ret_after >= 0) {
+						// insert after next_node_name
+						node_stats->next = next_node_name->next;
+						next_node_name->next = node_stats;
+						inserted = true;
+					}
+				}
+
+				next_node_name = next_node_name->next;
+			}
+
+		} else {
+			*first_node = last_node = node_stats;
+		}
+
+		size_t name_length = strlen(node_stats->node->get_meta()->o_name);
 
 		if (name_length > max_topic_name_length) {
 			max_topic_name_length = name_length;
 		}
 
-		last_node->last_lost_msg_count = last_node->node->lost_message_count();
-		last_node->last_pub_msg_count = last_node->node->published_message_count();
+		node_stats->last_lost_msg_count = node_stats->node->lost_message_count();
+		node_stats->last_pub_msg_count = node_stats->node->published_message_count();
 	}
 
 	return 0;
