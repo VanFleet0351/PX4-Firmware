@@ -290,24 +290,20 @@ int uORB::DeviceMaster::addNewDeviceNodes(DeviceNodeStatisticsData **first_node,
 
 void uORB::DeviceMaster::showTop(char **topic_filter, int num_filters)
 {
-	bool print_active_only = true;
+	bool print_active_only = false;
 	bool only_once = false; // if true, run only once, then exit
 
 	if (topic_filter && num_filters > 0) {
-		bool show_all = false;
-
 		for (int i = 0; i < num_filters; ++i) {
 			if (!strcmp("-a", topic_filter[i])) {
-				show_all = true;
+				print_active_only = true;
 
 			} else if (!strcmp("-1", topic_filter[i])) {
 				only_once = true;
 			}
 		}
 
-		print_active_only = only_once ? (num_filters == 1) : false; // print non-active if -a or some filter given
-
-		if (show_all || print_active_only) {
+		if (only_once || print_active_only) {
 			num_filters = 0;
 		}
 	}
