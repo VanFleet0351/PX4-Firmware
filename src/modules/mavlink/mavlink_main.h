@@ -627,9 +627,10 @@ private:
 	bool			_broadcast_address_found{false};
 	bool			_broadcast_address_not_found_warned{false};
 	bool			_broadcast_failed_warned{false};
-	uint8_t			_network_buf[MAVLINK_MAX_PACKET_LEN] {};
-	unsigned		_network_buf_len{0};
 #endif
+
+	uint8_t			_buf[MAVLINK_MAX_PACKET_LEN] {};
+	unsigned		_buf_len{0};
 
 	const char 		*_interface_name{nullptr};
 

@@ -784,40 +784,55 @@ Mavlink::send_packet()
 {
 	int ret = -1;
 
-#if defined(CONFIG_NET) || defined(__PX4_POSIX)
+	// only transmit after we've received messages
+	if (!should_transmit()) {
+		_buf_len = 0;
+	}
 
-	/* Only send packets if there is something in the buffer. */
-	if (_network_buf_len == 0) {
+	// Only send packets if there is something in the buffer
+	if (_buf_len == 0) {
 		pthread_mutex_unlock(&_send_mutex);
 		return 0;
 	}
 
-	if (get_protocol() == UDP) {
-
-#ifdef CONFIG_NET
-
-		if (_src_addr_initialized) {
-#endif
-			ret = sendto(_socket_fd, _network_buf, _network_buf_len, 0,
-				     (struct sockaddr *)&_src_addr, sizeof(_src_addr));
-#ifdef CONFIG_NET
+	// send message to UART
+	if (get_protocol() == SERIAL) {
+		// check if there is space in the buffer, let it overflow else
+		if (get_free_tx_buf() < _buf_len) {
+			// not enough space in buffer to send
+			count_txerrbytes(_buf_len);
+			_buf_len = 0;
+			return -1;
 		}
 
-#endif
+		ret = ::write(_uart_fd, _buf, _buf_len);
+	}
 
-		/* resend message via broadcast if no valid connection exists */
+#if defined(CONFIG_NET) || defined(__PX4_POSIX)
+
+	else if (get_protocol() == UDP) {
+
+# if defined(CONFIG_NET)
+
+		if (_src_addr_initialized) {
+# endif // CONFIG_NET
+			ret = sendto(_socket_fd, _buf, _buf_len, 0, (struct sockaddr *)&_src_addr, sizeof(_src_addr));
+# if defined(CONFIG_NET)
+		}
+
+# endif // CONFIG_NET
+
+		// resend message via broadcast if no valid connection exists
 		if ((_mode != MAVLINK_MODE_ONBOARD) && broadcast_enabled() &&
-		    (!get_client_source_initialized()
-		     || (hrt_elapsed_time(&_tstatus.heartbeat_time) > 3_s))) {
+		    (!get_client_source_initialized() || (hrt_elapsed_time(&_tstatus.heartbeat_time) > 3_s))) {
 
 			if (!_broadcast_address_found) {
 				find_broadcast_address();
 			}
 
-			if (_broadcast_address_found && _network_buf_len > 0) {
+			if (_broadcast_address_found && _buf_len > 0) {
 
-				int bret = sendto(_socket_fd, _network_buf, _network_buf_len, 0,
-						  (struct sockaddr *)&_bcast_addr, sizeof(_bcast_addr));
+				int bret = sendto(_socket_fd, _buf, _buf_len, 0, (struct sockaddr *)&_bcast_addr, sizeof(_bcast_addr));
 
 				if (bret <= 0) {
 					if (!_broadcast_failed_warned) {
@@ -836,8 +851,17 @@ Mavlink::send_packet()
 		PX4_ERR("TCP transport pending implementation");
 	}
 
-	_network_buf_len = 0;
-#endif
+#endif // CONFIG_NET || __PX4_POSIX
+
+	if (ret != (int)_buf_len) {
+		count_txerrbytes(_buf_len);
+
+	} else {
+		_last_write_success_time = _last_write_try_time;
+		count_txbytes(_buf_len);
+	}
+
+	_buf_len = 0;
 
 	pthread_mutex_unlock(&_send_mutex);
 	return ret;
@@ -846,55 +870,9 @@ Mavlink::send_packet()
 void
 Mavlink::send_bytes(const uint8_t *buf, unsigned packet_len)
 {
-	/* If the wait until transmit flag is on, only transmit after we've received messages.
-	   Otherwise, transmit all the time. */
-	if (!should_transmit()) {
-		return;
-	}
-
-	_last_write_try_time = hrt_absolute_time();
-
-	if (_mavlink_start_time == 0) {
-		_mavlink_start_time = _last_write_try_time;
-	}
-
-	if (get_protocol() == SERIAL) {
-		/* check if there is space in the buffer, let it overflow else */
-		unsigned buf_free = get_free_tx_buf();
-
-		if (buf_free < packet_len) {
-			/* not enough space in buffer to send */
-			count_txerrbytes(packet_len);
-			return;
-		}
-	}
-
-	size_t ret = -1;
-
-	/* send message to UART */
-	if (get_protocol() == SERIAL) {
-		ret = ::write(_uart_fd, buf, packet_len);
-	}
-
-#if defined(CONFIG_NET) || defined(__PX4_POSIX)
-
-	else {
-		if (_network_buf_len + packet_len < sizeof(_network_buf) / sizeof(_network_buf[0])) {
-			memcpy(&_network_buf[_network_buf_len], buf, packet_len);
-			_network_buf_len += packet_len;
-
-			ret = packet_len;
-		}
-	}
-
-#endif
-
-	if (ret != (size_t) packet_len) {
-		count_txerrbytes(packet_len);
-
-	} else {
-		_last_write_success_time = _last_write_try_time;
-		count_txbytes(packet_len);
+	if (_buf_len + packet_len < sizeof(_buf)) {
+		memcpy(&_buf[_buf_len], buf, packet_len);
+		_buf_len += packet_len;
 	}
 }
 
