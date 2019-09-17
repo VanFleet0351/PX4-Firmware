@@ -185,6 +185,7 @@ Mavlink::~Mavlink()
 {
 	perf_free(_loop_perf);
 	perf_free(_loop_interval_perf);
+	perf_free(_send_byte_error_perf);
 
 	if (_task_running) {
 		/* task wakes up every 10ms or so at the longest */
@@ -786,11 +787,11 @@ Mavlink::send_packet()
 
 	// only transmit after we've received messages
 	if (!should_transmit()) {
-		_buf_len = 0;
+		_buf_fill = 0;
 	}
 
 	// Only send packets if there is something in the buffer
-	if (_buf_len == 0) {
+	if (_buf_fill == 0) {
 		pthread_mutex_unlock(&_send_mutex);
 		return 0;
 	}
@@ -798,14 +799,15 @@ Mavlink::send_packet()
 	// send message to UART
 	if (get_protocol() == SERIAL) {
 		// check if there is space in the buffer, let it overflow else
-		if (get_free_tx_buf() < _buf_len) {
+		if (get_free_tx_buf() < _buf_fill) {
 			// not enough space in buffer to send
-			count_txerrbytes(_buf_len);
-			_buf_len = 0;
+			count_txerrbytes(_buf_fill);
+			_buf_fill = 0;
+			pthread_mutex_unlock(&_send_mutex);
 			return -1;
 		}
 
-		ret = ::write(_uart_fd, _buf, _buf_len);
+		ret = ::write(_uart_fd, _buf, _buf_fill);
 	}
 
 #if defined(CONFIG_NET) || defined(__PX4_POSIX)
@@ -816,13 +818,12 @@ Mavlink::send_packet()
 
 		if (_src_addr_initialized) {
 # endif // CONFIG_NET
-			ret = sendto(_socket_fd, _buf, _buf_len, 0, (struct sockaddr *)&_src_addr, sizeof(_src_addr));
+			ret = sendto(_socket_fd, _buf, _buf_fill, 0, (struct sockaddr *)&_src_addr, sizeof(_src_addr));
 # if defined(CONFIG_NET)
 		}
 
 # endif // CONFIG_NET
 
-		// resend message via broadcast if no valid connection exists
 		if ((_mode != MAVLINK_MODE_ONBOARD) && broadcast_enabled() &&
 		    (!get_client_source_initialized() || (hrt_elapsed_time(&_tstatus.heartbeat_time) > 3_s))) {
 
@@ -830,9 +831,9 @@ Mavlink::send_packet()
 				find_broadcast_address();
 			}
 
-			if (_broadcast_address_found && _buf_len > 0) {
+			if (_broadcast_address_found && _buf_fill > 0) {
 
-				int bret = sendto(_socket_fd, _buf, _buf_len, 0, (struct sockaddr *)&_bcast_addr, sizeof(_bcast_addr));
+				int bret = sendto(_socket_fd, _buf, _buf_fill, 0, (struct sockaddr *)&_bcast_addr, sizeof(_bcast_addr));
 
 				if (bret <= 0) {
 					if (!_broadcast_failed_warned) {
@@ -853,15 +854,15 @@ Mavlink::send_packet()
 
 #endif // CONFIG_NET || __PX4_POSIX
 
-	if (ret != (int)_buf_len) {
-		count_txerrbytes(_buf_len);
+	if (ret != (int)_buf_fill) {
+		count_txerrbytes(_buf_fill);
 
 	} else {
 		_last_write_success_time = _last_write_try_time;
-		count_txbytes(_buf_len);
+		count_txbytes(_buf_fill);
 	}
 
-	_buf_len = 0;
+	_buf_fill = 0;
 
 	pthread_mutex_unlock(&_send_mutex);
 	return ret;
@@ -870,9 +871,12 @@ Mavlink::send_packet()
 void
 Mavlink::send_bytes(const uint8_t *buf, unsigned packet_len)
 {
-	if (_buf_len + packet_len < sizeof(_buf)) {
-		memcpy(&_buf[_buf_len], buf, packet_len);
-		_buf_len += packet_len;
+	if (_buf_fill + packet_len < sizeof(_buf)) {
+		memcpy(&_buf[_buf_fill], buf, packet_len);
+		_buf_fill += packet_len;
+
+	} else {
+		perf_count(_send_byte_error_perf);
 	}
 }
 

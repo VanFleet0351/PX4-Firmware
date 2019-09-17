@@ -630,7 +630,7 @@ private:
 #endif
 
 	uint8_t			_buf[MAVLINK_MAX_PACKET_LEN] {};
-	unsigned		_buf_len{0};
+	unsigned		_buf_fill{0};
 
 	const char 		*_interface_name{nullptr};
 
@@ -675,6 +675,7 @@ private:
 
 	perf_counter_t		_loop_perf{perf_alloc(PC_ELAPSED, "mavlink_el")};		/**< loop performance counter */
 	perf_counter_t		_loop_interval_perf{perf_alloc(PC_INTERVAL, "mavlink_int")};	/**< loop interval performance counter */
+	perf_counter_t		_send_byte_error_perf{perf_alloc(PC_COUNT, "mavlink_send_bytes_error")};	/**< send bytes error count */
 
 	void			mavlink_update_parameters();
 
