@@ -785,11 +785,6 @@ Mavlink::send_packet()
 {
 	int ret = -1;
 
-	// only transmit after we've received messages
-	if (!should_transmit()) {
-		_buf_fill = 0;
-	}
-
 	// Only send packets if there is something in the buffer
 	if (_buf_fill == 0) {
 		pthread_mutex_unlock(&_send_mutex);
