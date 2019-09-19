@@ -90,10 +90,8 @@
 
 enum Protocol {
 	SERIAL = 0,
-#if defined(CONFIG_NET) || defined(__PX4_POSIX)
 	UDP,
 	TCP,
-#endif // CONFIG_NET || __PX4_POSIX
 };
 
 using namespace time_literals;
