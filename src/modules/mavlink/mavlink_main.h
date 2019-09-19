@@ -90,8 +90,10 @@
 
 enum Protocol {
 	SERIAL = 0,
+#if defined(CONFIG_NET) || defined(__PX4_POSIX)
 	UDP,
 	TCP,
+#endif // CONFIG_NET || __PX4_POSIX
 };
 
 using namespace time_literals;
@@ -315,7 +317,11 @@ public:
 	/**
 	 * This is the beginning of a MAVLINK_START_UART_SEND/MAVLINK_END_UART_SEND transaction
 	 */
-	void 			begin_send() { pthread_mutex_lock(&_send_mutex); }
+	void 			send_start()
+	{
+		pthread_mutex_lock(&_send_mutex);
+		_last_write_try_time = hrt_absolute_time();
+	}
 
 	/**
 	 * Send bytes out on the link.
@@ -329,7 +335,7 @@ public:
 	 *
 	 * @return the number of bytes sent or -1 in case of error
 	 */
-	int             	send_packet();
+	void             	send_finish();
 
 	/**
 	 * Resend message as is, don't change sequence number and CRC.
@@ -450,7 +456,7 @@ public:
 
 	unsigned		get_system_type() { return _param_mav_type.get(); }
 
-	Protocol 		get_protocol() { return _protocol; }
+	Protocol 		get_protocol() const { return _protocol; }
 
 	unsigned short		get_network_port() { return _network_port; }
 

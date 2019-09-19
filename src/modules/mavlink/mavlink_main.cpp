@@ -108,7 +108,7 @@ void mavlink_start_uart_send(mavlink_channel_t chan, int length)
 	Mavlink *m = Mavlink::get_instance(chan);
 
 	if (m != nullptr) {
-		(void)m->begin_send();
+		m->send_start();
 #ifdef MAVLINK_PRINT_PACKETS
 		printf("START PACKET (%u): ", (unsigned)chan);
 #endif
@@ -120,7 +120,7 @@ void mavlink_end_uart_send(mavlink_channel_t chan, int length)
 	Mavlink *m = Mavlink::get_instance(chan);
 
 	if (m != nullptr) {
-		(void)m->send_packet();
+		m->send_finish();
 #ifdef MAVLINK_PRINT_PACKETS
 		printf("\n");
 #endif
@@ -750,11 +750,15 @@ Mavlink::get_free_tx_buf()
 	 */
 	int buf_free = 0;
 
+#if defined(CONFIG_NET) || defined(__PX4_POSIX)
+
 	// if we are using network sockets, return max length of one packet
 	if (get_protocol() == UDP || get_protocol() == TCP) {
 		return  1500;
 
-	} else {
+	} else
+#endif // CONFIG_NET || __PX4_POSIX
+	{
 		// No FIONSPACE on Linux todo:use SIOCOUTQ  and queue size to emulate FIONSPACE
 #if defined(__PX4_LINUX) || defined(__PX4_DARWIN) || defined(__PX4_CYGWIN)
 		//Linux cp210x does not support TIOCOUTQ
@@ -780,16 +784,16 @@ Mavlink::get_free_tx_buf()
 	return buf_free;
 }
 
-int
-Mavlink::send_packet()
+void
+Mavlink::send_finish()
 {
-	int ret = -1;
-
 	// Only send packets if there is something in the buffer
 	if (_buf_fill == 0) {
 		pthread_mutex_unlock(&_send_mutex);
-		return 0;
+		return;
 	}
+
+	int ret = -1;
 
 	// send message to UART
 	if (get_protocol() == SERIAL) {
@@ -799,7 +803,7 @@ Mavlink::send_packet()
 			count_txerrbytes(_buf_fill);
 			_buf_fill = 0;
 			pthread_mutex_unlock(&_send_mutex);
-			return -1;
+			return;
 		}
 
 		ret = ::write(_uart_fd, _buf, _buf_fill);
@@ -860,7 +864,6 @@ Mavlink::send_packet()
 	_buf_fill = 0;
 
 	pthread_mutex_unlock(&_send_mutex);
-	return ret;
 }
 
 void
@@ -2075,7 +2078,11 @@ Mavlink::task_main(int argc, char *argv[])
 			return OK;
 		}
 
-	} else if (get_protocol() == UDP) {
+	}
+
+#if defined(CONFIG_NET) || defined(__PX4_POSIX)
+
+	else if (get_protocol() == UDP) {
 		if (Mavlink::get_instance_for_network_port(_network_port) != nullptr) {
 			PX4_ERR("port %d already occupied", _network_port);
 			return PX4_ERROR;
@@ -2084,6 +2091,8 @@ Mavlink::task_main(int argc, char *argv[])
 		PX4_INFO("mode: %s, data rate: %d B/s on udp port %hu remote port %hu",
 			 mavlink_mode_str(_mode), _datarate, _network_port, _remote_port);
 	}
+
+#endif // CONFIG_NET || __PX4_POSIX
 
 	/* initialize send mutex */
 	pthread_mutex_init(&_send_mutex, nullptr);
@@ -2168,10 +2177,14 @@ Mavlink::task_main(int argc, char *argv[])
 	/* now the instance is fully initialized and we can bump the instance count */
 	LL_APPEND(_mavlink_instances, this);
 
+#if defined(CONFIG_NET) || defined(__PX4_POSIX)
+
 	/* init socket if necessary */
 	if (get_protocol() == UDP) {
 		init_udp();
 	}
+
+#endif // CONFIG_NET || __PX4_POSIX
 
 	/* if the protocol is serial, we send the system version blindly */
 	if (get_protocol() == SERIAL) {
@@ -2181,9 +2194,15 @@ Mavlink::task_main(int argc, char *argv[])
 	/* start the MAVLink receiver last to avoid a race */
 	MavlinkReceiver::receive_start(&_receive_thread, this);
 
+	_mavlink_start_time = hrt_absolute_time();
+
 	while (!_task_should_exit) {
 		/* main loop */
 		px4_usleep(_main_loop_delay);
+
+		if (!should_transmit()) {
+			continue;
+		}
 
 		perf_count(_loop_interval_perf);
 		perf_begin(_loop_perf);
@@ -2341,10 +2360,15 @@ Mavlink::task_main(int argc, char *argv[])
 				if (configure_streams_to_default(_subscribe_to_stream) == 0) {
 					if (get_protocol() == SERIAL) {
 						PX4_DEBUG("stream %s on device %s set to default rate", _subscribe_to_stream, _device_name);
+					}
 
-					} else if (get_protocol() == UDP) {
+#if defined(CONFIG_NET) || defined(__PX4_POSIX)
+
+					else if (get_protocol() == UDP) {
 						PX4_DEBUG("stream %s on UDP port %d set to default rate", _subscribe_to_stream, _network_port);
 					}
+
+#endif // CONFIG_NET || __PX4_POSIX
 
 				} else {
 					PX4_ERR("setting stream %s to default failed", _subscribe_to_stream);
@@ -2356,27 +2380,45 @@ Mavlink::task_main(int argc, char *argv[])
 						PX4_DEBUG("stream %s on device %s enabled with rate %.1f Hz", _subscribe_to_stream, _device_name,
 							  (double)_subscribe_to_stream_rate);
 
-					} else if (get_protocol() == UDP) {
+					}
+
+#if defined(CONFIG_NET) || defined(__PX4_POSIX)
+
+					else if (get_protocol() == UDP) {
 						PX4_DEBUG("stream %s on UDP port %d enabled with rate %.1f Hz", _subscribe_to_stream, _network_port,
 							  (double)_subscribe_to_stream_rate);
 					}
+
+#endif // CONFIG_NET || __PX4_POSIX
 
 				} else {
 					if (get_protocol() == SERIAL) {
 						PX4_DEBUG("stream %s on device %s disabled", _subscribe_to_stream, _device_name);
 
-					} else if (get_protocol() == UDP) {
+					}
+
+#if defined(CONFIG_NET) || defined(__PX4_POSIX)
+
+					else if (get_protocol() == UDP) {
 						PX4_DEBUG("stream %s on UDP port %d disabled", _subscribe_to_stream, _network_port);
 					}
+
+#endif // CONFIG_NET || __PX4_POSIX
 				}
 
 			} else {
 				if (get_protocol() == SERIAL) {
 					PX4_ERR("stream %s on device %s not found", _subscribe_to_stream, _device_name);
 
-				} else if (get_protocol() == UDP) {
+				}
+
+#if defined(CONFIG_NET) || defined(__PX4_POSIX)
+
+				else if (get_protocol() == UDP) {
 					PX4_ERR("stream %s on UDP port %d not found", _subscribe_to_stream, _network_port);
 				}
+
+#endif // CONFIG_NET || __PX4_POSIX
 			}
 
 			_subscribe_to_stream = nullptr;
@@ -2726,6 +2768,8 @@ Mavlink::display_status()
 	printf("\ttransport protocol: ");
 
 	switch (_protocol) {
+#if defined(CONFIG_NET) || defined(__PX4_POSIX)
+
 	case UDP:
 		printf("UDP (%i, remote port: %i)\n", _network_port, _remote_port);
 #ifdef __PX4_POSIX
@@ -2740,6 +2784,7 @@ Mavlink::display_status()
 	case TCP:
 		printf("TCP\n");
 		break;
+#endif // CONFIG_NET || __PX4_POSIX
 
 	case SERIAL:
 		printf("serial (%s @%i)\n", _device_name, _baudrate);
