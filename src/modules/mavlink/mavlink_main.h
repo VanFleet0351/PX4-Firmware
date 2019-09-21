@@ -321,23 +321,15 @@ public:
 	/**
 	 * This is the beginning of a MAVLINK_START_UART_SEND/MAVLINK_END_UART_SEND transaction
 	 */
-	void 			send_start()
-	{
-		pthread_mutex_lock(&_send_mutex);
-		_last_write_try_time = hrt_absolute_time();
-	}
+	void 			send_start(int length);
 
 	/**
-	 * Send bytes out on the link.
-	 *
-	 * On a network port these might actually get buffered to form a packet.
+	 * Buffer bytes to send out on the link.
 	 */
 	void			send_bytes(const uint8_t *buf, unsigned packet_len);
 
 	/**
 	 * Flush the transmit buffer and send one MAVLink packet
-	 *
-	 * @return the number of bytes sent or -1 in case of error
 	 */
 	void             	send_finish();
 
@@ -641,6 +633,8 @@ private:
 	uint8_t			_buf[MAVLINK_MAX_PACKET_LEN] {};
 	unsigned		_buf_fill{0};
 
+	bool			_tx_buffer_low{false};
+
 	const char 		*_interface_name{nullptr};
 
 	int			_socket_fd{-1};
@@ -683,6 +677,7 @@ private:
 	perf_counter_t		_loop_perf{perf_alloc(PC_ELAPSED, "mavlink_el")};		/**< loop performance counter */
 	perf_counter_t		_loop_interval_perf{perf_alloc(PC_INTERVAL, "mavlink_int")};	/**< loop interval performance counter */
 	perf_counter_t		_send_byte_error_perf{perf_alloc(PC_COUNT, "mavlink_send_bytes_error")};	/**< send bytes error count */
+	perf_counter_t		_send_start_tx_buf_low{perf_alloc(PC_COUNT, "mavlink_tx_buf_low")};	/**< available tx buffer smaller than message */
 
 	void			mavlink_update_parameters();
 

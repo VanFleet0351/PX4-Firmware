@@ -108,7 +108,7 @@ void mavlink_start_uart_send(mavlink_channel_t chan, int length)
 	Mavlink *m = Mavlink::get_instance(chan);
 
 	if (m != nullptr) {
-		m->send_start();
+		m->send_start(length);
 #ifdef MAVLINK_PRINT_PACKETS
 		printf("START PACKET (%u): ", (unsigned)chan);
 #endif
@@ -186,6 +186,7 @@ Mavlink::~Mavlink()
 	perf_free(_loop_perf);
 	perf_free(_loop_interval_perf);
 	perf_free(_send_byte_error_perf);
+	perf_free(_send_start_tx_buf_low);
 
 	if (_task_running) {
 		/* task wakes up every 10ms or so at the longest */
@@ -788,10 +789,30 @@ Mavlink::get_free_tx_buf()
 }
 
 void
+Mavlink::send_start(int length)
+{
+	pthread_mutex_lock(&_send_mutex);
+	_last_write_try_time = hrt_absolute_time();
+
+	// check if there is space in the buffer
+	if (length > (int)get_free_tx_buf()) {
+		// not enough space in buffer to send
+		count_txerrbytes(length);
+
+		// prevent writes
+		_tx_buffer_low = true;
+
+		perf_count(_send_start_tx_buf_low);
+
+	} else {
+		_tx_buffer_low = false;
+	}
+}
+
+void
 Mavlink::send_finish()
 {
-	// Only send packets if there is something in the buffer
-	if (_buf_fill == 0) {
+	if (_tx_buffer_low || (_buf_fill == 0)) {
 		pthread_mutex_unlock(&_send_mutex);
 		return;
 	}
@@ -800,15 +821,6 @@ Mavlink::send_finish()
 
 	// send message to UART
 	if (get_protocol() == Protocol::SERIAL) {
-		// check if there is space in the buffer, let it overflow else
-		if (get_free_tx_buf() < _buf_fill) {
-			// not enough space in buffer to send
-			count_txerrbytes(_buf_fill);
-			_buf_fill = 0;
-			pthread_mutex_unlock(&_send_mutex);
-			return;
-		}
-
 		ret = ::write(_uart_fd, _buf, _buf_fill);
 	}
 
@@ -819,7 +831,6 @@ Mavlink::send_finish()
 # if defined(CONFIG_NET)
 
 		if (_src_addr_initialized) {
-
 # endif // CONFIG_NET
 			ret = sendto(_socket_fd, _buf, _buf_fill, 0, (struct sockaddr *)&_src_addr, sizeof(_src_addr));
 # if defined(CONFIG_NET)
@@ -849,17 +860,16 @@ Mavlink::send_finish()
 				}
 			}
 		}
-
 	}
 
 #endif // MAVLINK_UDP
 
-	if (ret != (int)_buf_fill) {
-		count_txerrbytes(_buf_fill);
+	if (ret == (int)_buf_fill) {
+		count_txbytes(_buf_fill);
+		_last_write_success_time = _last_write_try_time;
 
 	} else {
-		_last_write_success_time = _last_write_try_time;
-		count_txbytes(_buf_fill);
+		count_txerrbytes(_buf_fill);
 	}
 
 	_buf_fill = 0;
@@ -870,12 +880,14 @@ Mavlink::send_finish()
 void
 Mavlink::send_bytes(const uint8_t *buf, unsigned packet_len)
 {
-	if (_buf_fill + packet_len < sizeof(_buf)) {
-		memcpy(&_buf[_buf_fill], buf, packet_len);
-		_buf_fill += packet_len;
+	if (!_tx_buffer_low) {
+		if (_buf_fill + packet_len < sizeof(_buf)) {
+			memcpy(&_buf[_buf_fill], buf, packet_len);
+			_buf_fill += packet_len;
 
-	} else {
-		perf_count(_send_byte_error_perf);
+		} else {
+			perf_count(_send_byte_error_perf);
+		}
 	}
 }
 
