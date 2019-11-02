@@ -150,6 +150,17 @@ RoverPositionControl::vehicle_attitude_poll()
 	}
 }
 
+void
+RoverPositionControl::vehicle_angular_velocity_poll()
+{
+	bool rates_updated;
+	orb_check(_vehicle_angular_velocity_sub, &rates_updated);
+
+	if (rates_updated) {
+		orb_copy(ORB_ID(vehicle_angular_velocity), _vehicle_angular_velocity_sub, &_vehicle_rates);
+	}
+}
+
 bool
 RoverPositionControl::control_position(const matrix::Vector2f &current_position,
 				       const matrix::Vector3f &ground_speed, const position_setpoint_triplet_s &pos_sp_triplet)
@@ -334,6 +345,22 @@ RoverPositionControl::control_attitude(const vehicle_attitude_s &att, const vehi
 }
 
 void
+RoverPositionControl::control_rates(const vehicle_angular_velocity_s &rates, const vehicle_rates_setpoint_s &rates_sp)
+{
+	control_input.yaw_rate_setpoint = rates_sp.yaw;
+	float control_effort = _yaw_ctrl.control_euler_rate(control_input);
+	control_effort = math::constrain(control_effort, -1.0f, 1.0f);
+
+	_act_controls.control[actuator_controls_s::INDEX_YAW] = control_effort;
+
+	const float control_throttle = rates_sp.thrust_body[0];
+
+	_act_controls.control[actuator_controls_s::INDEX_THROTTLE] =  math::constrain(control_throttle, 0.0f, 1.0f);
+
+}
+
+
+void
 RoverPositionControl::run()
 {
 	_control_mode_sub = orb_subscribe(ORB_ID(vehicle_control_mode));
@@ -399,6 +426,7 @@ RoverPositionControl::run()
 
 			position_setpoint_triplet_poll();
 			vehicle_attitude_poll();
+			vehicle_angular_velocity_poll();
 
 			//Convert Local setpoints to global setpoints
 			if (_control_mode.flag_control_offboard_enabled) {
