@@ -38,38 +38,65 @@
 using namespace matrix;
 using namespace ControlMath;
 
+class ControlMathAttitudeMappingTest : public ::testing::Test
+{
+public:
+	void checkDirection(const Vector3f thrust_setpoint, const float yaw)
+	{
+		thrustToAttitude(thrust_setpoint, yaw, _attitude_setpoint);
+		EXPECT_EQ(Quatf(_attitude_setpoint.q_d).dcm_z(), -thrust_setpoint.normalized());
+		EXPECT_EQ(_attitude_setpoint.thrust_body[2], -thrust_setpoint.length());
+	}
 
-TEST(ControlMathTest, ThrottleAttitudeMapping)
+	void checkEuler(const float roll, const float pitch, const float yaw)
+	{
+		EXPECT_NEAR(_attitude_setpoint.roll_body, roll, 1e-4f);
+		EXPECT_NEAR(_attitude_setpoint.pitch_body, pitch, 1e-4f);
+		EXPECT_NEAR(_attitude_setpoint.yaw_body, yaw, 1e-4f);
+	}
+
+	vehicle_attitude_setpoint_s _attitude_setpoint{};
+};
+
+TEST_F(ControlMathAttitudeMappingTest, AttitudeMappingNoRotation)
 {
 	/* expected: zero roll, zero pitch, zero yaw, full thr mag
 	 * reason: thrust pointing full upward */
-	Vector3f thr{0.0f, 0.0f, -1.0f};
-	float yaw = 0.0f;
-	vehicle_attitude_setpoint_s att{};
-	thrustToAttitude(thr, yaw, att);
-	EXPECT_EQ(att.roll_body, 0);
-	EXPECT_EQ(att.pitch_body, 0);
-	EXPECT_EQ(att.yaw_body, 0);
-	EXPECT_EQ(att.thrust_body[2], -1.f);
+	checkDirection(Vector3f(0, 0, -1), 0);
+	checkEuler(0, 0, 0);
+}
 
+TEST_F(ControlMathAttitudeMappingTest, AttitudeMappingYaw90)
+{
 	/* expected: same as before but with 90 yaw
 	 * reason: only yaw changed */
-	yaw = M_PI_2_F;
-	thrustToAttitude(thr, yaw, att);
-	EXPECT_EQ(att.roll_body, 0);
-	EXPECT_EQ(att.pitch_body, 0);
-	EXPECT_EQ(att.yaw_body, M_PI_2_F);
-	EXPECT_EQ(att.thrust_body[2], -1.f);
+	checkDirection(Vector3f(0, 0, -1), M_PI_2_F);
+	checkEuler(0, 0, M_PI_2_F);
+}
 
+TEST_F(ControlMathAttitudeMappingTest, AttitudeMappingUpsideDown)
+{
 	/* expected: same as before but roll 180
 	 * reason: thrust points straight down and order Euler
 	 * order is: 1. roll, 2. pitch, 3. yaw */
-	thr = Vector3f(0.0f, 0.0f, 1.0f);
-	thrustToAttitude(thr, yaw, att);
-	EXPECT_NEAR(att.roll_body, -M_PI_F, 1e-4);
-	EXPECT_EQ(att.pitch_body, 0);
-	EXPECT_EQ(att.yaw_body, M_PI_2_F);
-	EXPECT_EQ(att.thrust_body[2], -1.f);
+	checkDirection(Vector3f(0, 0, 1), 0);
+	checkEuler(M_PI_F, 0, 0);
+}
+
+TEST_F(ControlMathAttitudeMappingTest, AttitudeMappingUpsideDownYaw90)
+{
+	/* expected: same as before but roll 180
+	 * reason: thrust points straight down and order Euler
+	 * order is: 1. roll, 2. pitch, 3. yaw */
+	checkDirection(Vector3f(0, 0, 1), M_PI_2_F);
+	checkEuler(-M_PI_F, 0, M_PI_2_F);
+}
+
+TEST_F(ControlMathAttitudeMappingTest, AttitudeMappingRandomDirections)
+{
+	checkDirection(Vector3f(0, .5f, -.5f), 1.f);
+	checkDirection(Vector3f(-2.f, 8.f, .1f), 2.f);
+	checkDirection(Vector3f(-.2f, -5.f, -30.f), 2.f);
 }
 
 TEST(ControlMathTest, ConstrainXYPriorities)
