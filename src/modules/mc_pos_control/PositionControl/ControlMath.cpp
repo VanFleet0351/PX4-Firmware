@@ -44,64 +44,34 @@
 using namespace matrix;
 namespace ControlMath
 {
+
 void thrustToAttitude(const Vector3f &thr_sp, const float yaw_sp, vehicle_attitude_setpoint_s &att_sp)
 {
-	att_sp.yaw_body = yaw_sp;
+	Quatf q = bodyzToQuaternion(thr_sp, yaw_sp);
 
-	// desired body_z axis = -normalize(thrust_vector)
-	Vector3f body_x, body_y, body_z;
-
-	if (thr_sp.length() > 0.00001f) {
-		body_z = -thr_sp.normalized();
-
-	} else {
-		// no thrust, set Z axis to safe value
-		body_z = Vector3f(0.f, 0.f, 1.f);
-	}
-
-	// vector of desired yaw direction in XY plane, rotated by PI/2
-	Vector3f y_C(-sinf(att_sp.yaw_body), cosf(att_sp.yaw_body), 0.0f);
-
-	if (fabsf(body_z(2)) > 0.000001f) {
-		// desired body_x axis, orthogonal to body_z
-		body_x = y_C % body_z;
-
-		// keep nose to front while inverted upside down
-		if (body_z(2) < 0.0f) {
-			body_x = -body_x;
-		}
-
-		body_x.normalize();
-
-	} else {
-		// desired thrust is in XY plane, set X downside to construct correct matrix,
-		// but yaw component will not be used actually
-		body_x.zero();
-		body_x(2) = 1.0f;
-	}
-
-	// desired body_y axis
-	body_y = body_z % body_x;
-
-	Dcmf R_sp;
-
-	// fill rotation matrix
-	for (int i = 0; i < 3; i++) {
-		R_sp(i, 0) = body_x(i);
-		R_sp(i, 1) = body_y(i);
-		R_sp(i, 2) = body_z(i);
-	}
-
-	//copy quaternion setpoint to attitude setpoint topic
-	Quatf q_sp = R_sp;
-	q_sp.copyTo(att_sp.q_d);
+	// copy quaternion setpoint to attitude setpoint topic
+	q.copyTo(att_sp.q_d);
 	att_sp.q_d_valid = true;
 
 	// calculate euler angles, for logging only, must not be used for control
-	Eulerf euler = R_sp;
+	Eulerf euler(q);
 	att_sp.roll_body = euler(0);
 	att_sp.pitch_body = euler(1);
+	att_sp.yaw_body = euler(2);
+
 	att_sp.thrust_body[2] = -thr_sp.length();
+}
+
+Quatf bodyzToQuaternion(Vector3f body_z, const float yaw_sp)
+{
+	// zero vector, no direction, set safe level value
+	if (body_z.norm_squared() < FLT_EPSILON) {
+		body_z(2) = -1.f;
+	}
+
+	Quatf q(Vector3f(0, 0, -1), body_z);
+	Quatf q_yaw(cosf(yaw_sp / 2.f), 0, 0, sinf(yaw_sp / 2.f));
+	return q * q_yaw;
 }
 
 Vector2f constrainXY(const Vector2f &v0, const Vector2f &v1, const float &max)

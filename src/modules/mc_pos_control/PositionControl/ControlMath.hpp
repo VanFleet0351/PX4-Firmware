@@ -54,6 +54,8 @@ namespace ControlMath
 void thrustToAttitude(const matrix::Vector3f &thr_sp, const float yaw_sp,
 		      vehicle_attitude_setpoint_s &attitude_setpoint);
 
+matrix::Quatf bodyzToQuaternion(matrix::Vector3f body_z, const float yaw_sp);
+
 /**
  * Outputs the sum of two vectors but respecting the limits and priority.
  * The sum of two vectors are constraint such that v0 has priority over v1.
