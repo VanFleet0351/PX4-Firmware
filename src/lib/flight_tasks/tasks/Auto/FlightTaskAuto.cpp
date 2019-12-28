@@ -245,7 +245,18 @@ bool FlightTaskAuto::_evaluateTriplets()
 	// set heading
 	if (_ext_yaw_handler != nullptr && _ext_yaw_handler->is_active()) {
 		_yaw_setpoint = _yaw;
-		_yawspeed_setpoint = _ext_yaw_handler->get_weathervane_yawrate();
+		// use the yawrate setpoint from WV only if not moving (velocity setpoint below half of _param_mpc_xy_cruise)
+		// otherwise, keep heading constant (as output from WV is not according to wind in this case)
+		bool vehicle_is_stationary = Vector2f(_velocity_setpoint).length() < (_param_mpc_xy_cruise.get() / 2.0f);
+
+		if (vehicle_is_stationary) {
+			_yawspeed_setpoint = _ext_yaw_handler->get_weathervane_yawrate();
+
+		} else {
+			_yawspeed_setpoint = 0.0f;
+		}
+
+
 
 	} else if (_type == WaypointType::follow_target && _sub_triplet_setpoint.get().current.yawspeed_valid) {
 		_yawspeed_setpoint = _sub_triplet_setpoint.get().current.yawspeed;
