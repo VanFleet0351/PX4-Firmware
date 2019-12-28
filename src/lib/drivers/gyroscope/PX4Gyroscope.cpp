@@ -159,7 +159,6 @@ PX4Gyroscope::update(hrt_abstime timestamp, float x, float y, float z)
 		control.timestamp_sample = timestamp;
 		control.device_id = _device_id;
 		val_filtered.copyTo(control.xyz);
-		control.timestamp = hrt_absolute_time();
 		_sensor_control_pub.publish(control);
 
 		_control_last_publish = control.timestamp_sample;
@@ -217,7 +216,6 @@ PX4Gyroscope::update(hrt_abstime timestamp, float x, float y, float z)
 	status.temperature = _temperature;
 	status.vibration_metric = _vibration_metric;
 	status.coning_vibration = _coning_vibration;
-	status.timestamp = hrt_absolute_time();
 	_sensor_status_pub.publish(status);
 }
 
@@ -256,7 +254,6 @@ PX4Gyroscope::updateFIFO(const FIFOSample &sample)
 			control.timestamp_sample = sample.timestamp_sample + ((sample.samples - 1) * sample.dt); // timestamp of last sample
 			control.device_id = _device_id;
 			val_calibrated.copyTo(control.xyz);
-			control.timestamp = hrt_absolute_time();
 			_sensor_control_pub.publish(control);
 
 			_control_last_publish = control.timestamp_sample;
@@ -301,7 +298,6 @@ PX4Gyroscope::updateFIFO(const FIFOSample &sample)
 		status.measure_rate = _update_rate;
 		status.sample_rate = _sample_rate;
 		status.temperature = _temperature;
-		status.timestamp = hrt_absolute_time();
 		_sensor_status_pub.publish(status);
 	}
 
@@ -402,7 +398,6 @@ PX4Gyroscope::updateFIFO(const FIFOSample &sample)
 	memcpy(fifo.y, sample.y, sizeof(sample.y[0]) * sample.samples);
 	memcpy(fifo.z, sample.z, sizeof(sample.z[0]) * sample.samples);
 
-	fifo.timestamp = hrt_absolute_time();
 	_sensor_fifo_pub.publish(fifo);
 }
 
