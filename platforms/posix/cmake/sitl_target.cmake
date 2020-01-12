@@ -64,7 +64,7 @@ set(models none shell
 	if750a iris iris_opt_flow iris_vision iris_rplidar iris_irlock iris_obs_avoid iris_rtps solo typhoon_h480
 	plane
 	standard_vtol tailsitter tiltrotor
-	hippocampus rover)
+	hippocampus rover aion_robotics_r1_rover)
 set(all_posix_vmd_make_targets)
 foreach(viewer ${viewers})
 	foreach(debugger ${debuggers})
