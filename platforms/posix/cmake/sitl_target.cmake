@@ -58,7 +58,7 @@ ExternalProject_Add(mavsdk_tests
 )
 
 # create targets for each viewer/model/debugger combination
-set(viewers none jmavsim gazebo)
+set(viewers none jmavsim gazebo airsim)
 set(debuggers none ide gdb lldb ddd valgrind callgrind)
 set(models none shell
 	if750a iris iris_opt_flow iris_vision iris_rplidar iris_irlock iris_obs_avoid iris_rtps solo typhoon_h480

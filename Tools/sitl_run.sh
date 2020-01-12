@@ -94,6 +94,9 @@ elif [ "$program" == "gazebo" ] && [ ! -n "$no_sim" ]; then
 		echo "You need to have gazebo simulator installed!"
 		exit 1
 	fi
+elif [ "$program" == "airsim" ] && [ ! -n "$no_sim" ]; then
+	echo "Airsim sitl integration is still WIP!"
+	exit 1
 fi
 
 pushd "$rootfs" >/dev/null
