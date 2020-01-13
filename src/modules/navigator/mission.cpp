@@ -407,10 +407,11 @@ Mission::find_mission_land_start()
 			_landing_alt = missionitem_prev.altitude;
 			return true;
 
-			// if no DO_LAND_START marker available, also check for VTOL_LAND or normal LAND
+			// if no DO_LAND_START marker available, also check for VTOL_LAND or normal LAND (if vehicle is a VTOL or a multicopter)
 
-		} else if (((missionitem.nav_cmd == NAV_CMD_VTOL_LAND) && _navigator->get_vstatus()->is_vtol) ||
-			   (missionitem.nav_cmd == NAV_CMD_LAND)) {
+		} else if ((missionitem.nav_cmd == NAV_CMD_LAND || missionitem.nav_cmd == NAV_CMD_VTOL_LAND) &&
+			   (_navigator->get_vstatus()->is_vtol ||
+			    _navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING)) {
 
 			_land_start_available = true;
 			_land_start_index = i;
