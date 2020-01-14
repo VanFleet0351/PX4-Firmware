@@ -177,8 +177,7 @@ PX4Accelerometer::update(hrt_abstime timestamp, float x, float y, float z)
 		ResetIntegrator();
 
 		// update vibration metrics
-		const Vector3f delta_velocity = integrated_value * (integral_dt * 1.e-6f);
-		UpdateVibrationMetrics(delta_velocity);
+		UpdateVibrationMetrics(integrated_value);
 	}
 
 	// publish status
@@ -262,43 +261,44 @@ PX4Accelerometer::updateFIFO(const FIFOSample &sample)
 			ResetIntegrator();
 		}
 
+		// integrate
+		int first_sample = 0;
+
 		if (_integrator_samples == 0) {
 			_integrator_timestamp_sample = sample.timestamp_sample;
+			_integrator_accum(0) = sample.x[0];
+			_integrator_accum(1) = sample.y[0];
+			_integrator_accum(2) = sample.z[0];
+			first_sample = 1;
 		}
 
-		// integrate
 		_integrator_samples += 1;
 		_integrator_fifo_samples += sample.samples;
 
-		for (int n = 0; n < sample.samples; n++) {
-			_integrator_accum[0] += sample.x[n];
+		// Use trapezoidal integration to calculate the delta integral
+		const float half_dt_us = sample.dt * 0.5f;
+
+		for (int n = first_sample; n < sample.samples; n++) {
+			_integrator_accum(0) = (_integrator_accum(0) + sample.x[n]) * half_dt_us;
 		}
 
-		for (int n = 0; n < sample.samples; n++) {
-			_integrator_accum[1] += sample.y[n];
+		for (int n = first_sample; n < sample.samples; n++) {
+			_integrator_accum(1) = (_integrator_accum(1) + sample.y[n]) * half_dt_us;
 		}
 
-		for (int n = 0; n < sample.samples; n++) {
-			_integrator_accum[2] += sample.z[n];
+		for (int n = first_sample; n < sample.samples; n++) {
+			_integrator_accum(2) = (_integrator_accum(2) + sample.z[n]) * half_dt_us;
 		}
 
 		if (_integrator_fifo_samples > 0 && (_integrator_samples >= _integrator_reset_samples)) {
 
 			const uint32_t integrator_dt_us = _integrator_fifo_samples * sample.dt; // time span in microseconds
 
-			// average integrated values to apply calibration
-			float x_int_avg = _integrator_accum[0] / _integrator_fifo_samples;
-			float y_int_avg = _integrator_accum[1] / _integrator_fifo_samples;
-			float z_int_avg = _integrator_accum[2] / _integrator_fifo_samples;
-
-			// Apply rotation (before scaling)
-			rotate_3f(_rotation, x_int_avg, y_int_avg, z_int_avg);
-
-			const Vector3f raw_int{x_int_avg, y_int_avg, z_int_avg};
+			// Apply rotation (before scaling) and convert value integrated in microseconds to seconds
+			const Vector3f raw_int{get_rot_matrix(_rotation) *_integrator_accum * 1.e-6f};
 
 			// Apply range scale and the calibrating offset/scale
-			Vector3f val_int_calibrated{(((raw_int * _scale) - _calibration_offset).emult(_calibration_scale))};
-			val_int_calibrated *= (_integrator_fifo_samples * sample.dt * 1e-6f);	// restore
+			const Vector3f val_int_calibrated{(((raw_int * _scale) - _calibration_offset).emult(_calibration_scale))};
 
 			// publish
 			sensor_accel_s report{};
@@ -327,8 +327,7 @@ PX4Accelerometer::updateFIFO(const FIFOSample &sample)
 			_sensor_pub.publish(report);
 
 			// update vibration metrics
-			const Vector3f delta_velocity = val_int_calibrated * (integrator_dt_us * 1.e-6f);
-			UpdateVibrationMetrics(delta_velocity);
+			UpdateVibrationMetrics(val_int_calibrated);
 
 			// reset integrator
 			ResetIntegrator();
@@ -358,9 +357,7 @@ PX4Accelerometer::ResetIntegrator()
 {
 	_integrator_samples = 0;
 	_integrator_fifo_samples = 0;
-	_integrator_accum[0] = 0;
-	_integrator_accum[1] = 0;
-	_integrator_accum[2] = 0;
+	_integrator_accum.zero();
 	_integrator_clipping = 0;
 
 	_integrator_timestamp_sample = 0;
