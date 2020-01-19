@@ -315,12 +315,12 @@ void ISM330DLC::Run()
 	// estimate timestamp of first sample in the FIFO from number of samples and fill rate
 	const hrt_abstime timestamp_sample = timestamp_fifo_level - ((samples - 1) * gyro_dt);
 
-	PX4Accelerometer::FIFOSample accel{};
+	PX4Accelerometer::FIFOSample accel;
 	accel.timestamp_sample = timestamp_sample;
 	accel.samples = samples;
 	accel.dt = gyro_dt;
 
-	PX4Gyroscope::FIFOSample gyro{};
+	PX4Gyroscope::FIFOSample gyro;
 	gyro.timestamp_sample = timestamp_sample;
 	gyro.samples = samples;
 	gyro.dt = gyro_dt;

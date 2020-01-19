@@ -57,7 +57,7 @@ public:
 	void set_external(bool external) { _sensor_mag_pub.get().is_external = external; }
 	void set_sensitivity(float x, float y, float z) { _sensitivity = matrix::Vector3f{x, y, z}; }
 
-	void update(hrt_abstime timestamp_sample, float x, float y, float z);
+	void update(const hrt_abstime &timestamp_sample, float x, float y, float z);
 
 	void print_status();
 

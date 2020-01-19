@@ -331,11 +331,11 @@ void ICM20608G::Run()
 	// estimate timestamp of first sample in the FIFO from number of samples and fill rate
 	const hrt_abstime timestamp_sample = _time_data_ready - ((samples - 1) * gyro_dt);
 
-	PX4Accelerometer::FIFOSample accel{};
+	PX4Accelerometer::FIFOSample accel;
 	accel.timestamp_sample = timestamp_sample;
 	accel.dt = FIFO_INTERVAL / FIFO_ACCEL_SAMPLES;
 
-	PX4Gyroscope::FIFOSample gyro{};
+	PX4Gyroscope::FIFOSample gyro;
 	gyro.timestamp_sample = timestamp_sample;
 	gyro.samples = samples;
 	gyro.dt = FIFO_INTERVAL / FIFO_GYRO_SAMPLES;

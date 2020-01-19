@@ -55,7 +55,7 @@ public:
 
 	void set_temperature(float temperature) { _sensor_baro_pub.get().temperature = temperature; }
 
-	void update(hrt_abstime timestamp, float pressure);
+	void update(const hrt_abstime &timestamp_sample, float pressure);
 
 	void print_status();
 
