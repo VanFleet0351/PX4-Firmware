@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2016 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,62 +31,15 @@
  *
  ****************************************************************************/
 
-#pragma once
-
 /**
- * @file parameters.h
+ * QNH for barometer
  *
- * defines the list of parameters that are used within the sensors module
+ * @min 500
+ * @max 1500
+ * @group Sensors
+ * @unit hPa
  *
- * @author Beat Kueng <beat-kueng@gmx.net>
+ * @reboot_required true
+ *
  */
-
-#include <lib/parameters/param.h>
-
-namespace sensors
-{
-
-struct Parameters {
-	float diff_pres_offset_pa;
-#ifdef ADC_AIRSPEED_VOLTAGE_CHANNEL
-	float diff_pres_analog_scale;
-#endif /* ADC_AIRSPEED_VOLTAGE_CHANNEL */
-
-	int32_t board_rotation;
-
-	float board_offset[3];
-
-	int32_t air_cmodel;
-	float air_tube_length;
-	float air_tube_diameter_mm;
-};
-
-struct ParameterHandles {
-	param_t diff_pres_offset_pa;
-#ifdef ADC_AIRSPEED_VOLTAGE_CHANNEL
-	param_t diff_pres_analog_scale;
-#endif /* ADC_AIRSPEED_VOLTAGE_CHANNEL */
-
-	param_t board_rotation;
-
-	param_t board_offset[3];
-
-	param_t air_cmodel;
-	param_t air_tube_length;
-	param_t air_tube_diameter_mm;
-
-};
-
-/**
- * initialize ParameterHandles struct
- */
-void initialize_parameter_handles(ParameterHandles &parameter_handles);
-
-
-/**
- * Read out the parameters using the handles into the parameters struct.
- * @return 0 on success, <0 on error
- */
-void update_parameters(const ParameterHandles &parameter_handles, Parameters &parameters);
-
-} /* namespace sensors */
+PARAM_DEFINE_FLOAT(SENS_BARO_QNH, 1013.25f);
