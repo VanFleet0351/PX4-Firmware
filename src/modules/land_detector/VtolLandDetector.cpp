@@ -40,6 +40,7 @@
  */
 
 #include <drivers/drv_hrt.h>
+#include <matrix/math.hpp>
 
 #include "VtolLandDetector.h"
 
@@ -92,6 +93,15 @@ bool VtolLandDetector::_get_landed_state()
 	_was_in_air = !landed;
 
 	return landed;
+}
+
+bool VtolLandDetector::_get_freefall_state()
+{
+	bool low_gravity_detected = MulticopterLandDetector::_get_freefall_state(); // true if falling or in a parabolic flight
+
+	bool airspeed_below_stall = _airspeed_filtered < _param_aspd_stall.get(); // is always true in airspeed-less mode
+
+	return (low_gravity_detected && airspeed_below_stall);
 }
 
 } // namespace land_detector

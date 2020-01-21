@@ -59,6 +59,7 @@ protected:
 	void _update_topics() override;
 	bool _get_landed_state() override;
 	bool _get_maybe_landed_state() override;
+	bool _get_freefall_state() override;
 
 private:
 
@@ -73,7 +74,8 @@ private:
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(
 		MulticopterLandDetector,
-		(ParamFloat<px4::params::LNDFW_AIRSPD_MAX>) _param_lndfw_airspd_max
+		(ParamFloat<px4::params::LNDFW_AIRSPD_MAX>) _param_lndfw_airspd_max,
+		(ParamFloat<px4::params::ASPD_STALL>)  	    _param_aspd_stall
 	);
 };
 
