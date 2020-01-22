@@ -1,16 +1,16 @@
 
 px4_add_board(
-	VENDOR emlid
-	MODEL navio2
-	LABEL default
+	VENDOR beaglebone
+	MODEL blue
+	LABEL experimental
 	PLATFORM posix
-	ARCHITECTURE cortex-a53
+	ARCHITECTURE cortex-a8
 	TOOLCHAIN arm-linux-gnueabihf
 	TESTING
 	DRIVERS
 		adc
 		#barometer # all available barometer drivers
-		barometer/ms5611
+		barometer/bmp280
 		batt_smbus
 		camera_capture
 		camera_trigger
@@ -19,12 +19,10 @@ px4_add_board(
 		gps
 		#imu # all available imu drivers
 		imu/mpu9250
-		imu/st/lsm9ds1
 		linux_pwm_out
 		linux_sbus
 		#magnetometer # all available magnetometer drivers
 		magnetometer/hmc5883
-		magnetometer/lsm9ds1_mag
 		pwm_out_sim
 		rc_input
 		#telemetry # all available telemetry drivers

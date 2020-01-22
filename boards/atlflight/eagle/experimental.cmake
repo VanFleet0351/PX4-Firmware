@@ -1,5 +1,5 @@
 
-# Excelsior is the code name of a board currently in development.
+# The Eagle board is the first generation Snapdragon Flight board by Qualcomm.
 
 include(px4_git)
 px4_add_git_submodule(TARGET git_cmake_hexagon PATH "${PX4_SOURCE_DIR}/boards/atlflight/cmake_hexagon")
@@ -30,17 +30,17 @@ add_compile_options($<$<COMPILE_LANGUAGE:C>:-std=gnu99>)
 add_compile_options($<$<COMPILE_LANGUAGE:CXX>:-std=gnu++11>)
 
 add_definitions(
-	-D__PX4_POSIX_EXCELSIOR
+	-D__PX4_POSIX_EAGLE
 	-D__PX4_LINUX
 )
 
 px4_add_board(
 	PLATFORM posix
 	VENDOR atlflight
-	MODEL excelsior
-	LABEL default
+	MODEL eagle
+	LABEL experimental
 	#TESTING
-	TOOLCHAIN arm-oemllib32-linux-gnueabi
+	TOOLCHAIN arm-linux-gnueabihf
 	DRIVERS
 		#barometer # all available barometer drivers
 		batt_smbus
@@ -83,6 +83,7 @@ px4_add_board(
 		rover_pos_control
 		sensors
 		#sih
+		temperature_compensation
 		simulator
 		vmount
 		vtol_att_control
