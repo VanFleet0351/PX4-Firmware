@@ -863,7 +863,6 @@ FixedwingPositionControl::control_position(const Vector2f &curr_pos, const Vecto
 						false,
 						radians(_parameters.pitch_limit_min));
 
-			PX4_INFO("Offboard Velocity setpoint engaged");
 		} else if (pos_sp_curr.type == position_setpoint_s::SETPOINT_TYPE_LOITER) {
 
 			/* waypoint is a loiter waypoint */
