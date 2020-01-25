@@ -827,22 +827,43 @@ FixedwingPositionControl::control_position(const Vector2f &curr_pos, const Vecto
 			_att_sp.roll_body = 0.0f;
 			_att_sp.pitch_body = 0.0f;
 
-		} else if (pos_sp_curr.type == position_setpoint_s::SETPOINT_TYPE_POSITION) {
+		} else if (pos_sp_curr.type == position_setpoint_s::SETPOINT_TYPE_POSITION && _control_mode.flag_control_position_enabled) {
 			/* waypoint is a plain navigation waypoint */
 			_l1_control.navigate_waypoints(prev_wp, curr_wp, curr_pos, nav_speed_2d);
 			_att_sp.roll_body = _l1_control.get_roll_setpoint();
 			_att_sp.yaw_body = _l1_control.nav_bearing();
 
 			tecs_update_pitch_throttle(pos_sp_curr.alt,
-						   calculate_target_airspeed(mission_airspeed, ground_speed),
-						   radians(_parameters.pitch_limit_min) - _parameters.pitchsp_offset_rad,
-						   radians(_parameters.pitch_limit_max) - _parameters.pitchsp_offset_rad,
-						   _parameters.throttle_min,
-						   _parameters.throttle_max,
-						   mission_throttle,
-						   false,
-						   radians(_parameters.pitch_limit_min));
+						calculate_target_airspeed(mission_airspeed, ground_speed),
+						radians(_parameters.pitch_limit_min) - _parameters.pitchsp_offset_rad,
+						radians(_parameters.pitch_limit_max) - _parameters.pitchsp_offset_rad,
+						_parameters.throttle_min,
+						_parameters.throttle_max,
+						mission_throttle,
+						false,
+						radians(_parameters.pitch_limit_min));
 
+		} else if (pos_sp_curr.type == position_setpoint_s::SETPOINT_TYPE_POSITION && _control_mode.flag_control_velocity_enabled) {
+			/* waypoint is a plain navigation waypoint */
+			Vector2f target_velocity{pos_sp_curr.vx, pos_sp_curr.vy};
+
+			_l1_control.navigate_velocity_local(target_velocity, _yaw, nav_speed_2d);
+			_att_sp.roll_body = _l1_control.get_roll_setpoint();
+			_att_sp.yaw_body = _l1_control.nav_bearing();
+
+			//TODO: Calculate pitch and throttle from velocity setpoints
+
+			tecs_update_pitch_throttle(pos_sp_curr.alt,
+						calculate_target_airspeed(mission_airspeed, ground_speed),
+						radians(_parameters.pitch_limit_min) - _parameters.pitchsp_offset_rad,
+						radians(_parameters.pitch_limit_max) - _parameters.pitchsp_offset_rad,
+						_parameters.throttle_min,
+						_parameters.throttle_max,
+						mission_throttle,
+						false,
+						radians(_parameters.pitch_limit_min));
+
+			PX4_INFO("Offboard Velocity setpoint engaged");
 		} else if (pos_sp_curr.type == position_setpoint_s::SETPOINT_TYPE_LOITER) {
 
 			/* waypoint is a loiter waypoint */
