@@ -6,7 +6,7 @@ if [ -z ${PX4_DOCKER_REPO+x} ]; then
 		# nuttx-px4fmu-v{1,2,3,4,5}
 		PX4_DOCKER_REPO="px4io/px4-dev-nuttx:2019-11-25"
 	elif [[ $@ =~ .*ocpoc.* ]] || [[ $@ =~ .*navio2.* ]] || [[ $@ =~ .*raspberry.* ]] || [[ $@ =~ .*beaglebone.* ]]; then
-		# aerotenna_ocpoc_experimental, beaglebone_blue_experimental, emlid_navio2_experimental, px4_raspberrypi_default
+		# aerotenna_ocpoc_experimental, beaglebone_blue_experimental, emlid_navio2_experimental, px4_raspberrypi_experimental
 		PX4_DOCKER_REPO="px4io/px4-dev-armhf:2019-11-25"
 	elif [[ $@ =~ .*eagle.* ]] || [[ $@ =~ .*excelsior.* ]]; then
 		# eagle, excelsior
