@@ -98,7 +98,7 @@ Subscription::init()
 {
 	if (_meta != nullptr) {
 		// this throttles the relatively expensive calls to getDeviceNode()
-		if ((_last_generation == 0) || (_last_generation < 1000) || (_last_generation % 100 == 0))  {
+		if ((_last_generation == 0) || (_last_generation < 10000) || (_last_generation % 10 == 0))  {
 			if (subscribe()) {
 				return true;
 			}
@@ -107,22 +107,6 @@ Subscription::init()
 		if (_node == nullptr) {
 			// use generation to count attempts to subscribe
 			_last_generation++;
-		}
-	}
-
-	return false;
-}
-
-bool
-Subscription::update(uint64_t *time, void *dst)
-{
-	if ((time != nullptr) && (dst != nullptr) && advertised()) {
-		// always copy data to dst regardless of update
-		const uint64_t t = _node->copy_and_get_timestamp(dst, _last_generation);
-
-		if (*time == 0 || *time != t) {
-			*time = t;
-			return true;
 		}
 	}
 
