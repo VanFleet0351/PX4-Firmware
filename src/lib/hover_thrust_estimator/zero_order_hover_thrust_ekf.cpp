@@ -63,9 +63,17 @@ ZeroOrderHoverThrustEkf::status ZeroOrderHoverThrustEkf::fuseAccZ(const float ac
 		updateState(K, innov);
 		updateStateCovariance(K, H);
 		residual = computeInnov(acc_z, thrust); // residual != innovation since the hover thrust changed
+		updateMeasurementNoise(residual, H);
+
+	} else if (!isTestRatioPassing(_innov_test_ratio_lpf)) {
+		// Rejecting all the measurements for some time,
+		// it means that the hover thrust suddenly changed or that the EKF
+		// is diverging. To recover, we bump the state variance and reset the accel noise.
+		bumpStateVariance();
+		resetAccelNoise();
 	}
 
-	updateMeasurementNoise(residual, H);
+	updateLpf(residual, innov_test_ratio);
 
 	return packStatus(innov, innov_var, innov_test_ratio);
 }
@@ -119,7 +127,20 @@ inline void ZeroOrderHoverThrustEkf::updateStateCovariance(const float K, const 
 inline void ZeroOrderHoverThrustEkf::updateMeasurementNoise(const float residual, const float H)
 {
 	const float alpha = _dt / (noise_learning_time_constant + _dt);
-	_R = math::constrain((1.f - alpha) * _R  + alpha * (residual * residual + H * _P * H), 1e-4f, 60.f);
+	const float res_no_bias = residual - _residual_lpf;
+	_R = math::constrain((1.f - alpha) * _R  + alpha * (res_no_bias * res_no_bias + H * _P * H), 1e-4f, 60.f);
+}
+
+inline void ZeroOrderHoverThrustEkf::bumpStateVariance()
+{
+	_P += 10000.f * _Q * _dt;
+}
+
+inline void ZeroOrderHoverThrustEkf::updateLpf(const float residual, const float innov_test_ratio)
+{
+	const float alpha = _dt / (5.f * noise_learning_time_constant + _dt);
+	_residual_lpf = (1.f - alpha) * _residual_lpf + alpha * residual;
+	_innov_test_ratio_lpf = (1.f - alpha) * _innov_test_ratio_lpf + alpha * math::min(innov_test_ratio, 5.f);
 }
 
 inline ZeroOrderHoverThrustEkf::status ZeroOrderHoverThrustEkf::packStatus(const float innov, const float innov_var,

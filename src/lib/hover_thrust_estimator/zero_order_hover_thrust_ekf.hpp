@@ -75,6 +75,7 @@ public:
 	void predict(float _dt);
 	status fuseAccZ(float acc_z, float thrust);
 
+	void setHoverThrust(float hover_thrust) { _hover_thr = hover_thrust; }
 	void setProcessNoiseStdDev(float process_noise) { _Q = process_noise * process_noise; }
 	void setMeasurementNoiseStdDev(float measurement_noise) { _R = measurement_noise * measurement_noise; }
 	void setHoverThrustStdDev(float hover_thrust_noise) { _P = hover_thrust_noise * hover_thrust_noise; }
@@ -90,6 +91,9 @@ private:
 	float _Q{0.25e-6f}; // Hover thrust process noise (thrust^2/s^2)
 	float _R{5.f}; // Acceleration variance (m^2/s^3)
 	float _dt{0.02f};
+
+	float _residual_lpf{};
+	float _innov_test_ratio_lpf{};
 
 	float computeH(float thrust) const;
 	float computeInnovVar(float H) const;
@@ -108,6 +112,9 @@ private:
 	void updateState(float K, float innov);
 	void updateStateCovariance(float K, float H);
 	void updateMeasurementNoise(float residual, float H);
+
+	void bumpStateVariance();
+	void updateLpf(float residual, float innov_test_ratio);
 
 	status packStatus(float innov, float innov_var, float innov_test_ratio) const;
 
