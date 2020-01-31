@@ -39,7 +39,7 @@
  * Vertical acceleration is used as a measurement and the current
  * thrust (T[k]) is used in the measurement model.
  *
- * The sate is noise driven: Transition matrix A = 1
+ * The state is noise driven: Transition matrix A = 1
  * x[k+1] = Ax[k] + v with v ~ N(0, Q)
  * y[k] = h(u, x) + w with w ~ N(0, R)
  *
@@ -73,7 +73,7 @@ public:
 	void resetAccelNoise() { _R = 5.f; };
 
 	void predict(float _dt);
-	status fuseAccZ(float acc_z, float thrust);
+	void fuseAccZ(float acc_z, float thrust, status &status_return);
 
 	void setHoverThrust(float hover_thrust) { _hover_thr = hover_thrust; }
 	void setProcessNoiseStdDev(float process_noise) { _Q = process_noise * process_noise; }
@@ -87,9 +87,9 @@ private:
 	float _hover_thr{0.5f};
 
 	float _gate_size{3.f};
-	float _P{0.01f}; // Initial hover thrust uncertainty variance (thrust^2)
-	float _Q{0.25e-6f}; // Hover thrust process noise (thrust^2/s^2)
-	float _R{5.f}; // Acceleration variance (m^2/s^3)
+	float _P{0.01f}; ///< Initial hover thrust uncertainty variance (thrust^2)
+	float _Q{0.25e-6f}; ///< Hover thrust process noise (thrust^2/s^2)
+	float _R{5.f}; ///< Acceleration variance (m^2/s^3)
 	float _dt{0.02f};
 
 	float _residual_lpf{};
@@ -118,5 +118,5 @@ private:
 
 	status packStatus(float innov, float innov_var, float innov_test_ratio) const;
 
-	static constexpr float noise_learning_time_constant = 0.5f; // in seconds
+	static constexpr float noise_learning_time_constant = 0.5f; ///< in seconds
 };

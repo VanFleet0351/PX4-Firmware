@@ -49,7 +49,7 @@ void ZeroOrderHoverThrustEkf::predict(const float dt)
 	_dt = dt;
 }
 
-ZeroOrderHoverThrustEkf::status ZeroOrderHoverThrustEkf::fuseAccZ(const float acc_z, const float thrust)
+void ZeroOrderHoverThrustEkf::fuseAccZ(const float acc_z, const float thrust, status &status_return)
 {
 	const float H = computeH(thrust);
 	const float innov_var = computeInnovVar(H);
@@ -75,7 +75,7 @@ ZeroOrderHoverThrustEkf::status ZeroOrderHoverThrustEkf::fuseAccZ(const float ac
 
 	updateLpf(residual, innov_test_ratio);
 
-	return packStatus(innov, innov_var, innov_test_ratio);
+	status_return = packStatus(innov, innov_var, innov_test_ratio);
 }
 
 inline float ZeroOrderHoverThrustEkf::computeH(const float thrust) const

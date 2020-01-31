@@ -73,7 +73,7 @@ ZeroOrderHoverThrustEkf::status ZeroOrderHoverThrustEkfTest::runEkf(float accel,
 		_ekf.predict(_dt);
 		float noisy_accel =  accel + accel_noise * standard_normal_distribution_(random_generator_);
 		float noisy_thrust =  thrust + thr_noise * standard_normal_distribution_(random_generator_);
-		status = _ekf.fuseAccZ(noisy_accel, noisy_thrust);
+		_ekf.fuseAccZ(noisy_accel, noisy_thrust, status);
 	}
 
 	return status;

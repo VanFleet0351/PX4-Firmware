@@ -65,7 +65,9 @@ void HoverThrustEstimator::updateParams()
 void HoverThrustEstimator::update(const float dt)
 {
 	_hover_thrust_ekf.predict(dt);
-	ZeroOrderHoverThrustEkf::status status = _hover_thrust_ekf.fuseAccZ(_acc_z, _thrust);
+
+	ZeroOrderHoverThrustEkf::status status{};
+	_hover_thrust_ekf.fuseAccZ(_acc_z, _thrust, status);
 
 	publishStatus(status);
 }

@@ -39,9 +39,6 @@
  * @author Mathieu Bresciani <brescianimathieu@gmail.com>
  */
 
-#include <px4_platform_common/px4_config.h>
-#include <parameters/param.h>
-
 /**
  * Hover thrust process noise
  *
@@ -60,7 +57,7 @@ PARAM_DEFINE_FLOAT(HTE_HT_NOISE, 0.0005);
 /**
  * Gate size for acceleration fusion
  *
- * Sets the number of standatd deviations used
+ * Sets the number of standard deviations used
  * by the innovation consistency test.
  *
  * @decimal 1
