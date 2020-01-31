@@ -350,4 +350,7 @@ rtps:
   - msg: estimator_innovation_test_ratios
     id: 171
     alias: estimator_innovations
+  - msg: hover_thrust_estimator
+    id: 172
+    alias: hover_thrust_estimator
   ########## multi topics: end ##########
