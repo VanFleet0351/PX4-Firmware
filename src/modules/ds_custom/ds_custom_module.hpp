@@ -7,6 +7,7 @@
 #include <px4_platform_common/module.h>
 #include <uORB/topics/ds_custom.h>
 #include <errno.h>
+#include <drivers/drv_hrt.h>
 
 
 class ds_custom_module: public ModuleBase<ds_custom_module>
@@ -18,6 +19,8 @@ public:
 
     static int task_spawn(int argc, char *argv[]);
     static ds_custom_module *instantiate(int argc, char *argv[]);
+
+    void run() override;
 
 };
 
