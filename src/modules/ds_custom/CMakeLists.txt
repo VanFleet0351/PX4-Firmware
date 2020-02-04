@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2018 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2015 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -32,11 +32,10 @@
 ############################################################################
 
 px4_add_module(
-	MODULE templates__module
-	MAIN module
-	SRCS
-        module.cpp
-	DEPENDS
-		modules__uORB
-	)
-
+        MODULE modules__ds_custom
+        MAIN ds_custom
+        COMPILE_FLAGS
+        SRCS
+        ds_custom_module.cpp
+        DEPENDS
+)
