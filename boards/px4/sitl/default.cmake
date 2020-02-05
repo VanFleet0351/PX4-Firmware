@@ -21,6 +21,7 @@ px4_add_board(
 		#uavcan
 
 	MODULES
+		ds_custom
 		attitude_estimator_q
 		camera_feedback
 		commander
