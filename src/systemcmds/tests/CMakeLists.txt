@@ -32,6 +32,7 @@
 ############################################################################
 
 set(srcs
+	test_ds_custom.cpp
 	test_adc.c
 	test_autodeclination.cpp
 	test_bezierQuad.cpp

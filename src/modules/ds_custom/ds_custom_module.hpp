@@ -5,7 +5,9 @@
 #ifndef PX4_DS_CUSTOM_MODULE_HPP
 #define PX4_DS_CUSTOM_MODULE_HPP
 #include <platforms/px4_module.h>
-//#include <uORB/topics/ds_custom.h>
+#include <uORB/Publication.hpp>
+#include <uORB/Subscription.hpp>
+#include <uORB/topics/actuator_controls.h>
 #include <errno.h>
 #include <drivers/drv_hrt.h>
 
@@ -19,8 +21,11 @@ public:
 
     static int task_spawn(int argc, char *argv[]);
     static ds_custom_module *instantiate(int argc, char *argv[]);
-
+    static int telemetry_read(int argc, char *argv[]);
     void run() override;
+
+private:
+
 
 };
 

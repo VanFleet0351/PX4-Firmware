@@ -35,6 +35,7 @@ set(tests
 	sleep
 	uorb
 	versioning
+		ds_custom
 	)
 
 if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")

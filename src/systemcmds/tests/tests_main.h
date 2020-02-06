@@ -43,6 +43,7 @@
 
 __BEGIN_DECLS
 
+extern int test_ds_custom(int argc, char *argv[]);
 extern int test_adc(int argc, char *argv[]);
 extern int test_autodeclination(int argc, char *argv[]);
 extern int test_bezierQuad(int argc, char *argv[]);

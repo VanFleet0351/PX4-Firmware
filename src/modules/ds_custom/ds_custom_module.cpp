@@ -22,14 +22,45 @@ The commander module contains the state machine for mode switching and failsafe 
 
     PRINT_MODULE_USAGE_NAME("ds_custom", "system");
     PRINT_MODULE_USAGE_COMMAND("start");
-    PRINT_MODULE_USAGE_COMMAND("message");
+    PRINT_MODULE_USAGE_COMMAND("telemetry");
+    PRINT_MODULE_USAGE_ARG("pitch|roll|yaw|thrust", "Telemetry type", false);
     PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 
     return 1;
 }
 
 int ds_custom_module::custom_command(int argc, char *argv[]) {
+    if (argc >= 1) {
+        if (strcmp(argv[0], "telemetry") == 0) {
+            return telemetry_read(argc - 1, argv+1);
+        }
+    }
     return print_usage("unknown command");
+
+}
+
+int ds_custom_module::telemetry_read(int argc, char *argv[]) {
+    actuator_controls_s _actuators_out_0{};    //actuator controls going to the mc mixer
+    uORB::Subscription _actuators_0_sub{ORB_ID(actuator_controls_0)};
+    uint64_t start_time;
+    _actuators_0_sub.update(&start_time, &_actuators_out_0);
+    if (argc != 1) {
+        return print_usage(nullptr);
+    }
+    if (strcmp(argv[0], "pitch") == 0) {
+        PX4_INFO("%lf", (double) _actuators_out_0.control[1]);
+    } else if (strcmp(argv[0], "roll") == 0) {
+        PX4_INFO("%lf", (double) _actuators_out_0.control[0]);
+    } else if (strcmp(argv[0], "yaw") == 0)
+    {
+        PX4_INFO("%lf", (double) _actuators_out_0.control[2]);
+    }
+    else if (strcmp(argv[0], "thrust") == 0) {
+        PX4_INFO("%lf", (double) _actuators_out_0.control[3]);
+    } else {
+        return print_usage("unknown telemetry lookup");
+    }
+    return 1;
 }
 
 int ds_custom_module::task_spawn(int argc, char *argv[]) {
@@ -55,7 +86,6 @@ ds_custom_module *ds_custom_module::instantiate(int argc, char *argv[]) {
 }
 
 void ds_custom_module::run() {
-    //hrt_abstime start_time = hrt_absolute_time();
     while (!should_exit()) {
 
     }
