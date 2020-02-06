@@ -20,8 +20,7 @@ bool DSCustomTest::run_tests()
 
 bool DSCustomTest::test1()
 {
-    ut_compare("Bleh", true, false);
-
+    ut_compare("Our first unit test!", true, true);
     return true;
 }
 
