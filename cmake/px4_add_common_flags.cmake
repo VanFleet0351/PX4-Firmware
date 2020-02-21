@@ -75,12 +75,12 @@ function(px4_add_common_flags)
 		-Wdisabled-optimization
 		-Wdouble-promotion
 		-Wfatal-errors
-		-Wfloat-equal
+		#-Wfloat-equal
 		-Wformat-security
 		-Winit-self
 		-Wlogical-op
 		-Wpointer-arith
-		-Wshadow
+		#-Wshadow
 		-Wuninitialized
 		-Wunknown-pragmas
 		-Wunused-variable

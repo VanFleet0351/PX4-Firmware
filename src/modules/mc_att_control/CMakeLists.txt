@@ -48,4 +48,5 @@ px4_add_module(
 		AttitudeControl
 		RateControl
 		px4_work_queue
+		reservoir
 	)
