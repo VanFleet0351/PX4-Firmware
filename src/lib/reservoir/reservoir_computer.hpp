@@ -15,11 +15,14 @@
 
 class reservoir_computer {
 public:
-    reservoir_computer(uint8_t input_vector_size, uint16_t reservoir_size, uint8_t output_vector_size)
+    explicit reservoir_computer(uint8_t input_vector_size, uint16_t reservoir_size, uint8_t output_vector_size)
     {
         auto temp_matrix = Eigen::MatrixXd::Random(reservoir_size,input_vector_size);
+        //input matrix reservoir_size x reservoir_size
         W_in = temp_matrix.sparseView();
+        //nodes in the reservoir itself
         W = Eigen::SparseMatrix<double>(reservoir_size, reservoir_size);
+        //output weights
         W_out = Eigen::SparseMatrix<double>(output_vector_size, reservoir_size);
         setupReservoir();
     }
@@ -28,17 +31,18 @@ private:
     Eigen::SparseMatrix<double> W_in; //Input weights
     Eigen::SparseMatrix<double> W; //Reservoir nodes in represented by a matrix
     Eigen::SparseMatrix<double> W_out; //Output weights
-    double spectralRadius;
-    double sparsity;
+    double spectralRadius; // rho
+    double sparsity; // k in Canaday's paper
 
     void setupReservoir();
 };
 
+//populating the network matrix
 void reservoir_computer::setupReservoir() {
     std::vector< std::pair<int,int> > idx;
     std::random_device rdI; std::mt19937 genI(rdI()); std::uniform_int_distribution<> disI(0, W.rows()-1);
     std::random_device rdJ; std::mt19937 genJ(rdJ()); std::uniform_int_distribution<> disJ(0, W.cols()-1);
-    std::random_device rdR; std::mt19937 genR(rdR()); std::uniform_real_distribution<> disR(-0.5, 0.5);
+    std::random_device rdR; std::mt19937 genR(rdR()); std::uniform_real_distribution<> disR(-1.0, 1.0);
     std::random_device rdB; std::mt19937 genB(rdB()); std::uniform_real_distribution<> disB(-0.01,0.01);
 
     std::vector< Eigen::Triplet<double> > tripletList;
@@ -50,8 +54,10 @@ void reservoir_computer::setupReservoir() {
         idx.emplace_back(i,j);
         double value = 1e-7;
         do{
-            if(j<W.cols()-1) value = disR(genR);
-            else value = disB(genB);
+            if(j<W.cols()-1)
+                value = disR(genR);
+            else
+                value = disB(genB);
         }while(value < 1e-6);
         tripletList.emplace_back(i,j,value);
     }
@@ -59,6 +65,7 @@ void reservoir_computer::setupReservoir() {
     Eigen::SparseMatrix<double> W_0(W.rows(),W.cols());
     Eigen::SelfAdjointEigenSolver<Eigen::SparseMatrix<double> > es(W);
     W_0=W*(1/fabs(es.eigenvalues()[W.rows()-1]));//minimalESN normalize with 1.25, Jaeger 2002 with 1
+    //Canaday's paper page 21
     W = spectralRadius * W_0;
 }
 
