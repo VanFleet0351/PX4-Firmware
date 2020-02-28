@@ -24,7 +24,7 @@ public:
         //output weights
         W_out = Eigen::SparseMatrix<double>(output_vector_size, reservoir_size);
         setupReservoir();
-        reservoir_state = Eigen::VectorXd(reservoir_size);
+        reservoir_evolution = Eigen::MatrixXd(reservoir_size, 1);
     }
 
     //Using the trained outputs, predict the correct outputs given a vector of inputs
@@ -34,12 +34,11 @@ private:
     Eigen::SparseMatrix<double> W_in; //Input weights
     Eigen::SparseMatrix<double> W; //Reservoir nodes in represented by a matrix
     Eigen::SparseMatrix<double> W_out; //Output weights
-    Eigen::MatrixXd evolution;
-    Eigen::VectorXd reservoir_state;
+    Eigen::MatrixXd reservoir_evolution;
     double spectralRadius; // rho
     double sparsity; // k in Canaday's paper
 
-    Eigen::MatrixXd calculate_delta_r(const Eigen::MatrixXd& state_space, const Eigen::MatrixXd& input);
+    Eigen::MatrixXd calculate_reservoir_evolution(const Eigen::MatrixXd& state_space, const Eigen::MatrixXd& input);
     void propagate(const Eigen::MatrixXd& input, double time_step);
     void setupReservoir();
 };
@@ -49,26 +48,27 @@ double hypertan(double x)
     return std::tanh(x);
 }
 
-Eigen::VectorXd reservoir_computer::predict(const Eigen::VectorXd &input) {
+/*Eigen::VectorXd reservoir_computer::predict(const Eigen::VectorXd &input) {
 
-    Eigen::MatrixXd x = reservoir_state * (W * reservoir_state + W_in * input).unaryExpr(&hypertan);
+}*/
 
-    return x;
-}
-
-Eigen::MatrixXd reservoir_computer:: calculate_delta_r(const Eigen::MatrixXd& state_space, const Eigen::MatrixXd& input)
+Eigen::MatrixXd reservoir_computer:: calculate_reservoir_evolution(const Eigen::MatrixXd& state_space, const Eigen::MatrixXd& input)
 {
     return state_space * (W * state_space + W_in * input).unaryExpr(&hypertan);
 }
 
 void reservoir_computer::propagate(const Eigen::MatrixXd& input, double time_step)
 {
+    Eigen::VectorXd current_reservoir_state = reservoir_evolution.col(reservoir_evolution.cols() - 1);
+    //Use runge kutta estimation with the reservoir derivative function to estimate the next reservoir state
     Eigen::MatrixXd k1, k2, k3, k4;
-    k1 = calculate_delta_r(reservoir_state, input);
-    k2 = calculate_delta_r(reservoir_state + (time_step / 2) * k1, input);
-    k3 = calculate_delta_r(reservoir_state + (time_step / 2) * k2, input);
-    k4 = calculate_delta_r(reservoir_state + time_step * k3, input);
-    reservoir_state += (k1 + 2 * k2 + 2 * k3 + k4) / 6;
+    k1 = calculate_reservoir_evolution(current_reservoir_state, input);
+    k2 = calculate_reservoir_evolution(current_reservoir_state + (time_step / 2) * k1, input);
+    k3 = calculate_reservoir_evolution(current_reservoir_state + (time_step / 2) * k2, input);
+    k4 = calculate_reservoir_evolution(current_reservoir_state + time_step * k3, input);
+    current_reservoir_state += (k1 + 2 * k2 + 2 * k3 + k4) / 6;
+    //Add the newest reservoir state to the end of the reservoir evolution matrix
+    reservoir_evolution.conservativeResize(reservoir_evolution.rows(), reservoir_evolution.cols() + 1);
 }
 
 //populating the network matrix
