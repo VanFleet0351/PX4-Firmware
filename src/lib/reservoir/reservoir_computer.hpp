@@ -43,6 +43,15 @@ private:
     void setupReservoir();
 };
 
+Eigen::MatrixXd updateWeights(Eigen::MatrixXd reservoirState, Eigen::MatrixXd target)
+{
+    Eigen::MatrixXd I = Eigen::MatrixXd::Identity(reservoirState.rows(), reservoirState.cols());
+    Eigen::MatrixXd X_T = reservoirState.transpose();
+    Eigen::MatrixXd demon = X_T * reservoirState * I; //doesnt include gamma*I
+    demon = demon.inverse();
+    return demon * X_T * target;
+}
+
 double hypertan(double x)
 {
     return std::tanh(x);
