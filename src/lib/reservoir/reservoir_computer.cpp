@@ -1,5 +1,11 @@
 #include "reservoir_computer.hpp"
 
+/**
+ * Calculates hyperbolic tangent for a double. We define this here because std::tanh is a template
+ * function so passing a function pointer for Eigen's unaryExpr requires a function of specific type
+ * @param x
+ * @return hyperbolic tangent of x
+ */
 inline double hypertan(double x)
 {
     return std::tanh(x);
