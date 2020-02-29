@@ -15,14 +15,20 @@
 
 class reservoir_computer {
 public:
-    explicit reservoir_computer(uint8_t input_vector_size, uint16_t reservoir_size, uint8_t output_vector_size) {
+    explicit reservoir_computer(uint8_t input_vector_size, uint16_t reservoir_size, uint8_t output_vector_size,
+            double sparsity, double spectralRadius, double leakRate, double reg_param) {
         auto temp_matrix = Eigen::MatrixXd::Random(reservoir_size, input_vector_size);
         //input matrix reservoir_size x reservoir_size
         W_in = temp_matrix.sparseView();
         //nodes in the reservoir itself
+        //Dr.Guathier suggested trying a linear topology
         W = Eigen::SparseMatrix<double>(reservoir_size, reservoir_size);
         //output weights
         W_out = Eigen::SparseMatrix<double>(output_vector_size, reservoir_size);
+        this->sparsity = sparsity;
+        this->spectralRadius = spectralRadius;
+        this->leakRate = leakRate;
+        this->regression_param = reg_param;
         setupReservoir();
         reservoir_evolution = Eigen::MatrixXd(reservoir_size, 1);
     }
@@ -35,21 +41,24 @@ private:
     Eigen::SparseMatrix<double> W; //Reservoir nodes in represented by a matrix
     Eigen::SparseMatrix<double> W_out; //Output weights
     Eigen::MatrixXd reservoir_evolution;
-    double spectralRadius; // rho
+    //hyperparameters
+    double spectralRadius; // rho. 1.0 is a good starting point per thesis
     double sparsity; // k in Canaday's paper usually around 10%
+    double leakRate; //gamma for Wendson, a for Canaday. I've seen this set to 0.3, but canaday replaced it with h/c. thesis page 20 & 21
+    double regression_param; //alpha. Canaday has this at 1e-6, I've seen others use 1e-8
 
-    void updateWeights(Eigen::MatrixXd reservoirState, Eigen::MatrixXd target, double alpha);
+    void updateWeights(Eigen::MatrixXd reservoirState, Eigen::MatrixXd target);
     Eigen::MatrixXd calculate_reservoir_evolution(const Eigen::MatrixXd& state_space, const Eigen::MatrixXd& input);
     void propagate(const Eigen::MatrixXd& input, double time_step);
     void setupReservoir();
 };
 
-void reservoir_computer:: updateWeights(Eigen::MatrixXd reservoirState, Eigen::MatrixXd target, double alpha)
+void reservoir_computer:: updateWeights(Eigen::MatrixXd reservoirState, Eigen::MatrixXd target)
 {
     Eigen::MatrixXd I = Eigen::MatrixXd::Identity(reservoirState.rows(), reservoirState.cols());
     Eigen::MatrixXd X_T = reservoirState.transpose();
     //output matrix weights
-    W_out = (X_T * reservoirState + alpha * I).inverse() * X_T * target;
+    W_out = (X_T * reservoirState + regression_param * I).inverse() * X_T * target;
 }
 
 double hypertan(double x)
@@ -63,7 +72,9 @@ double hypertan(double x)
 
 Eigen::MatrixXd reservoir_computer:: calculate_reservoir_evolution(const Eigen::MatrixXd& state_space, const Eigen::MatrixXd& input)
 {
-    return state_space * (W * state_space + W_in * input).unaryExpr(&hypertan);
+    //Wendson had it as -leakRate * state_space + (leakRate * tanh(W*state_space+W_in*input)
+    //might also need to add a bias vector (thesis pg. 20, 21, 22) after input
+    return (1 - leakRate) * state_space + leakRate * (W * state_space + W_in * input).unaryExpr(&hypertan);
 }
 
 void reservoir_computer::propagate(const Eigen::MatrixXd& input, double time_step)
@@ -97,7 +108,7 @@ void reservoir_computer::setupReservoir() {
     std::uniform_real_distribution<> disB(-0.01, 0.01);
 
     std::vector<Eigen::Triplet<double> > tripletList;
-    int percentNonZero = W.rows() * W.cols() * sparsity;   //20% on nonZero cells, from jaeger,lucosevicius, 2010
+    int percentNonZero = W.rows() * W.cols() * sparsity;
     tripletList.reserve(percentNonZero);
     for (int p = 0; p < percentNonZero; p++) {
         int i = disI(genI);
@@ -116,7 +127,7 @@ void reservoir_computer::setupReservoir() {
     Eigen::SparseMatrix<double> W_0(W.rows(), W.cols());
     Eigen::SelfAdjointEigenSolver<Eigen::SparseMatrix<double> > es(W);
     W_0 = W * (1 / fabs(es.eigenvalues()[W.rows() - 1]));//minimalESN normalize with 1.25, Jaeger 2002 with 1
-    //Canaday's paper page 21
+    //thesis pg. 21
     W = spectralRadius * W_0;
 }
 
