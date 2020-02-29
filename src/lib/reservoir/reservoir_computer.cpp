@@ -16,7 +16,7 @@ inline double hypertan(double x)
 int reservoir_computer::update_leakage_rate(double rate)
 {
     int success = RETURN_CODE_DEFAULT;
-    if(current_state == NOT_TRAINED)
+    if(current_status == NOT_TRAINED)
     {
         leakage_rate = rate;
     } else{
@@ -33,7 +33,7 @@ int reservoir_computer::update_leakage_rate(double rate)
 int reservoir_computer::update_regression_parameter(double param)
 {
     int success = RETURN_CODE_DEFAULT;
-    if(current_state == NOT_TRAINED)
+    if(current_status == NOT_TRAINED)
     {
         regression_param = param;
     } else{
@@ -46,9 +46,9 @@ int reservoir_computer::update_regression_parameter(double param)
  * Gets the current status of the reservoir
  * @return The current state of the reservoir
  */
-reservoir_computer::reservoir_state_t reservoir_computer::get_reservoir_state()
+reservoir_status_t reservoir_computer::get_reservoir_status()
 {
-    return current_state;
+    return current_status;
 }
 
 /**
