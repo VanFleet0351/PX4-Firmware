@@ -36,20 +36,20 @@ private:
     Eigen::SparseMatrix<double> W_out; //Output weights
     Eigen::MatrixXd reservoir_evolution;
     double spectralRadius; // rho
-    double sparsity; // k in Canaday's paper
+    double sparsity; // k in Canaday's paper usually around 10%
 
+    void updateWeights(Eigen::MatrixXd reservoirState, Eigen::MatrixXd target, double alpha);
     Eigen::MatrixXd calculate_reservoir_evolution(const Eigen::MatrixXd& state_space, const Eigen::MatrixXd& input);
     void propagate(const Eigen::MatrixXd& input, double time_step);
     void setupReservoir();
 };
 
-Eigen::MatrixXd updateWeights(Eigen::MatrixXd reservoirState, Eigen::MatrixXd target, double alpha)
+void reservoir_computer:: updateWeights(Eigen::MatrixXd reservoirState, Eigen::MatrixXd target, double alpha)
 {
     Eigen::MatrixXd I = Eigen::MatrixXd::Identity(reservoirState.rows(), reservoirState.cols());
     Eigen::MatrixXd X_T = reservoirState.transpose();
-    Eigen::MatrixXd demon = X_T * reservoirState + alpha * I;
-    demon = demon.inverse();
-    return demon * X_T * target;
+    //output matrix weights
+    W_out = (X_T * reservoirState + alpha * I).inverse() * X_T * target;
 }
 
 double hypertan(double x)
