@@ -16,59 +16,49 @@
 #define RETURN_CODE_DEFAULT 0
 #define RETURN_CODE_ERROR -1
 
-enum reservoir_status_t
-{
+enum reservoir_status_t {
     NOT_TRAINED, TRAINING, TRAINED
 };
 
 class reservoir_computer {
 public:
     explicit reservoir_computer(uint8_t input_vector_size, uint16_t reservoir_size, uint8_t output_vector_size,
-            double sparsity, double spectralRadius, double leakRate, double reg_param) {
-        auto temp_matrix = Eigen::MatrixXd::Random(reservoir_size, input_vector_size);
-        //input matrix reservoir_size x reservoir_size
-        W_in = temp_matrix.sparseView();
-        //nodes in the reservoir itself
-        //Dr.Guathier suggested trying a linear topology
-        W = Eigen::SparseMatrix<double>(reservoir_size, reservoir_size);
-        //output weights
-        W_out = Eigen::SparseMatrix<double>(output_vector_size, reservoir_size);
-        this->sparsity = sparsity;
-        this->spectral_radius = spectralRadius;
-        this->leakage_rate = leakRate;
-        this->regression_param = reg_param;
-        setup_reservoir();
-        reservoir_evolution = Eigen::MatrixXd(reservoir_size, 1);
-        current_status = NOT_TRAINED;
-    }
+                                double sparsity, double spectral_radius, double leakage_rate, double reg_param);
 
     int update_leakage_rate(double);
+
     int update_regression_parameter(double);
+
+    double get_leakage_rate();
+
+    double get_regression_parameter();
+
     reservoir_status_t get_reservoir_status();
 
-    //TODO
+    //TODO implement this
     Eigen::VectorXd predict(const Eigen::VectorXd &input);
 
 private:
     Eigen::SparseMatrix<double> W_in; //Input weights
     Eigen::SparseMatrix<double> W; //Reservoir nodes in represented by a matrix
     Eigen::SparseMatrix<double> W_out; //Output weights
-    Eigen::MatrixXd reservoir_evolution;
+    Eigen::MatrixXd reservoir_evolution_;
     //hyperparameters
-    double spectral_radius; // rho. 1.0 is a good starting point per thesis
-    double sparsity; // k in Canaday's paper usually around 10%
-    double leakage_rate; //gamma for Wendson, a for Canaday. I've seen this set to 0.3, but canaday replaced it with h/c. thesis page 20 & 21
-    double regression_param; //alpha. Canaday has this at 1e-6, I've seen others use 1e-8
+    double sparsity_; // k in Canaday's paper usually around 10%
+    double spectral_radius_; // rho. 1.0 is a good starting point per thesis
+    double leakage_rate_; //gamma for Wendson, a for Canaday. I've seen this set to 0.3, but canaday replaced it with h/c. thesis page 20 & 21
+    double regression_parameter_; //alpha. Canaday has this at 1e-6, I've seen others use 1e-8
 
-    reservoir_status_t current_status; //Current state of the reservoir. Allows us to figure out whether to allow parameter updates
+    reservoir_status_t current_status_; //Current state of the reservoir. Allows us to figure out whether to allow parameter updates
 
-    void update_weights(const Eigen::MatrixXd& reservoirState, const Eigen::MatrixXd& target);
-    Eigen::MatrixXd calculate_reservoir_evolution(const Eigen::MatrixXd& state_space, const Eigen::MatrixXd& input);
-    void propagate(const Eigen::MatrixXd& input, double time_step);
+    void update_weights(const Eigen::MatrixXd &reservoirState, const Eigen::MatrixXd &target);
+
+    Eigen::MatrixXd calculate_reservoir_evolution(const Eigen::MatrixXd &state_space, const Eigen::MatrixXd &input);
+
+    void propagate(const Eigen::MatrixXd &input, double time_step);
+
     void setup_reservoir();
 };
-
-
 
 
 #endif //PX4_RESERVOIR_COMPUTER_HPP
