@@ -1197,7 +1197,6 @@ logging.
 	PRINT_MODULE_USAGE_NAME("mc_pos_control", "controller");
 	PRINT_MODULE_USAGE_COMMAND("start");
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
-    PRINT_MODULE_USAGE_NAME("mc_att_control", "controller"); \
 	PRINT_MODULE_USAGE_COMMAND_DESCR("createRes", "creates a reservoir object"); \
 	PRINT_MODULE_USAGE_COMMAND_DESCR("trainRes", ""); \
 	PRINT_MODULE_USAGE_ARG("arguments...", "Train specified reservoir", true); \
