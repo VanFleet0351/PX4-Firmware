@@ -13,61 +13,52 @@
 #include <Eigen/Eigenvalues>
 #include <Eigen/LU>
 
+#define RETURN_CODE_DEFAULT 0
+#define RETURN_CODE_ERROR -1
+
+enum reservoir_status_t {
+    NOT_TRAINED, TRAINING, TRAINED
+};
+
 class reservoir_computer {
 public:
-    explicit reservoir_computer(uint8_t input_vector_size, uint16_t reservoir_size, uint8_t output_vector_size)
-    {
-        auto temp_matrix = Eigen::MatrixXd::Random(reservoir_size,input_vector_size);
-        //input matrix reservoir_size x reservoir_size
-        W_in = temp_matrix.sparseView();
-        //nodes in the reservoir itself
-        W = Eigen::SparseMatrix<double>(reservoir_size, reservoir_size);
-        //output weights
-        W_out = Eigen::SparseMatrix<double>(output_vector_size, reservoir_size);
-        setupReservoir();
-    }
+    explicit reservoir_computer(uint8_t input_vector_size, uint16_t reservoir_size, uint8_t output_vector_size,
+                                double sparsity, double spectral_radius, double leakage_rate, double reg_param);
+
+    int update_leakage_rate(double);
+
+    int update_regression_parameter(double);
+
+    double get_leakage_rate();
+
+    double get_regression_parameter();
+
+    reservoir_status_t get_reservoir_status();
+
+    //TODO implement this
+    Eigen::VectorXd predict(const Eigen::VectorXd &input);
 
 private:
     Eigen::SparseMatrix<double> W_in; //Input weights
     Eigen::SparseMatrix<double> W; //Reservoir nodes in represented by a matrix
     Eigen::SparseMatrix<double> W_out; //Output weights
-    double spectralRadius; // rho
-    double sparsity; // k in Canaday's paper
+    Eigen::MatrixXd reservoir_evolution_;
+    //hyperparameters
+    double sparsity_; // k in Canaday's paper usually around 10%
+    double spectral_radius_; // rho. 1.0 is a good starting point per thesis
+    double leakage_rate_; //gamma for Wendson, a for Canaday. I've seen this set to 0.3, but canaday replaced it with h/c. thesis page 20 & 21
+    double regression_parameter_; //alpha. Canaday has this at 1e-6, I've seen others use 1e-8
 
-    void setupReservoir();
+    reservoir_status_t current_status_; //Current state of the reservoir. Allows us to figure out whether to allow parameter updates
+
+    void update_weights(const Eigen::MatrixXd &reservoirState, const Eigen::MatrixXd &target);
+
+    Eigen::MatrixXd calculate_reservoir_evolution(const Eigen::MatrixXd &state_space, const Eigen::MatrixXd &input);
+
+    void propagate(const Eigen::MatrixXd &input, double time_step);
+
+    void setup_reservoir();
 };
-
-//populating the network matrix
-void reservoir_computer::setupReservoir() {
-    std::vector< std::pair<int,int> > idx;
-    std::random_device rdI; std::mt19937 genI(rdI()); std::uniform_int_distribution<> disI(0, W.rows()-1);
-    std::random_device rdJ; std::mt19937 genJ(rdJ()); std::uniform_int_distribution<> disJ(0, W.cols()-1);
-    std::random_device rdR; std::mt19937 genR(rdR()); std::uniform_real_distribution<> disR(-1.0, 1.0);
-    std::random_device rdB; std::mt19937 genB(rdB()); std::uniform_real_distribution<> disB(-0.01,0.01);
-
-    std::vector< Eigen::Triplet<double> > tripletList;
-    int percentNonZero = W.rows() * W.cols() * sparsity;   //20% on nonZero cells, from jaeger,lucosevicius, 2010
-    tripletList.reserve(percentNonZero);
-    for(int p =0; p<percentNonZero; p++){
-        int i = disI(genI);
-        int j = disJ(genJ);
-        idx.emplace_back(i,j);
-        double value = 1e-7;
-        do{
-            if(j<W.cols()-1)
-                value = disR(genR);
-            else
-                value = disB(genB);
-        }while(value < 1e-6);
-        tripletList.emplace_back(i,j,value);
-    }
-    W.setFromTriplets(tripletList.begin(), tripletList.end());
-    Eigen::SparseMatrix<double> W_0(W.rows(),W.cols());
-    Eigen::SelfAdjointEigenSolver<Eigen::SparseMatrix<double> > es(W);
-    W_0=W*(1/fabs(es.eigenvalues()[W.rows()-1]));//minimalESN normalize with 1.25, Jaeger 2002 with 1
-    //Canaday's paper page 21
-    W = spectralRadius * W_0;
-}
 
 
 #endif //PX4_RESERVOIR_COMPUTER_HPP
