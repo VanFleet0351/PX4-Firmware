@@ -106,18 +106,15 @@ reservoir_status_t reservoir_computer::get_reservoir_status()
  * @param input Input data matrix
  * @param time_step The time delta
  */
-void reservoir_computer::propagate(const Eigen::MatrixXd& input, double time_step)
+void reservoir_computer::calculate_reservoir_propagation(const Eigen::MatrixXd& input, double time_step)
 {
-    Eigen::VectorXd current_reservoir_state = reservoir_evolution_.col(reservoir_evolution_.cols() - 1);
     //Use runge kutta estimation with the reservoir derivative function to estimate the next reservoir state
     Eigen::MatrixXd k1, k2, k3, k4;
-    k1 = calculate_reservoir_evolution(current_reservoir_state, input);
-    k2 = calculate_reservoir_evolution(current_reservoir_state + (time_step / 2) * k1, input);
-    k3 = calculate_reservoir_evolution(current_reservoir_state + (time_step / 2) * k2, input);
-    k4 = calculate_reservoir_evolution(current_reservoir_state + time_step * k3, input);
-    current_reservoir_state += (k1 + 2 * k2 + 2 * k3 + k4) / 6;
-    //Add the newest reservoir state to the end of the reservoir evolution matrix
-    reservoir_evolution_.conservativeResize(reservoir_evolution_.rows(), reservoir_evolution_.cols() + 1);
+    k1 = calculate_reservoir_evolution(current_reservoir_state_, input);
+    k2 = calculate_reservoir_evolution(current_reservoir_state_ + (time_step / 2) * k1, input);
+    k3 = calculate_reservoir_evolution(current_reservoir_state_ + (time_step / 2) * k2, input);
+    k4 = calculate_reservoir_evolution(current_reservoir_state_ + time_step * k3, input);
+    current_reservoir_state_ += (k1 + 2 * k2 + 2 * k3 + k4) / 6;
 }
 
 /**
@@ -125,12 +122,12 @@ void reservoir_computer::propagate(const Eigen::MatrixXd& input, double time_ste
  * @param reservoir_state
  * @param target
  */
-void reservoir_computer::update_weights(const Eigen::MatrixXd& reservoir_state, const Eigen::MatrixXd& target)
+void reservoir_computer::update_weights(const Eigen::MatrixXd& target)
 {
-    Eigen::MatrixXd I = Eigen::MatrixXd::Identity(reservoir_state.rows(), reservoir_state.cols());
-    Eigen::MatrixXd X_T = reservoir_state.transpose();
+    Eigen::MatrixXd I = Eigen::MatrixXd::Identity(reservoir_evolution_.rows(), reservoir_evolution_.cols());
+    Eigen::MatrixXd X_T = reservoir_evolution_.transpose();
     //output matrix weights
-    W_out = ((X_T * reservoir_state + regression_parameter_ * I).inverse() * X_T * target).sparseView();
+    W_out = ((X_T * reservoir_evolution_ + regression_parameter_ * I).inverse() * X_T * target).sparseView();
 }
 
 /**
@@ -186,4 +183,27 @@ void reservoir_computer::setup_reservoir() {
     W_0 = W * (1 / fabs(es.eigenvalues()[W.rows() - 1]));//minimalESN normalize with 1.25, Jaeger 2002 with 1
     //thesis pg. 21
     W = spectral_radius_ * W_0;
+}
+
+void reservoir_computer::train(const Eigen::MatrixXd& input_data, const Eigen::MatrixXd &training_data)
+{
+    current_status_ = TRAINING;
+    current_reservoir_state_ = reservoir_evolution_.col(reservoir_evolution_.cols() - 1);
+    for(int i = 0; i < input_data.rows(); i++)
+    {
+        //Get the current state of the reservoir
+        //Calculate the propogation of the reservoir
+        calculate_reservoir_propagation(input_data.row(i), 1);
+        //Expand the reservoir evolution matrix by 1 and set the new value
+        reservoir_evolution_.conservativeResize(reservoir_evolution_.rows(), reservoir_evolution_.cols() + 1);
+        reservoir_evolution_.col(reservoir_evolution_.cols() - 1) = current_reservoir_state_;
+    }
+    update_weights(training_data);
+    current_status_ = TRAINED;
+}
+
+Eigen::VectorXd reservoir_computer::predict(const Eigen::VectorXd& input_data)
+{
+    calculate_reservoir_propagation(input_data, 1);
+    return W_out * current_reservoir_state_;
 }

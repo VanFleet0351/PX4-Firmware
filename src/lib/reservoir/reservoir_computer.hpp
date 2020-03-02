@@ -7,7 +7,7 @@
 
 #include <stdint.h>
 #include <random>
-#include <drivers/drv_hrt.h>
+//#include <drivers/drv_hrt.h>
 #include <Eigen/Core>
 #include <Eigen/Sparse>
 #include <Eigen/Eigenvalues>
@@ -35,14 +35,14 @@ public:
 
     reservoir_status_t get_reservoir_status();
 
-    //TODO implement this
     Eigen::VectorXd predict(const Eigen::VectorXd &input);
 
 private:
-    Eigen::SparseMatrix<double> W_in; //Input weights
+    Eigen::MatrixXd W_in; //Input weights
     Eigen::SparseMatrix<double> W; //Reservoir nodes in represented by a matrix
-    Eigen::SparseMatrix<double> W_out; //Output weights
+    Eigen::MatrixXd W_out; //Output weights
     Eigen::MatrixXd reservoir_evolution_;
+    Eigen::VectorXd current_reservoir_state_;
     //hyperparameters
     double sparsity_; // k in Canaday's paper usually around 10%
     double spectral_radius_; // rho. 1.0 is a good starting point per thesis
@@ -51,13 +51,15 @@ private:
 
     reservoir_status_t current_status_; //Current state of the reservoir. Allows us to figure out whether to allow parameter updates
 
-    void update_weights(const Eigen::MatrixXd &reservoirState, const Eigen::MatrixXd &target);
+    void update_weights(const Eigen::MatrixXd &target);
 
     Eigen::MatrixXd calculate_reservoir_evolution(const Eigen::MatrixXd &state_space, const Eigen::MatrixXd &input);
 
-    void propagate(const Eigen::MatrixXd &input, double time_step);
+    void calculate_reservoir_propagation(const Eigen::MatrixXd &input, double time_step);
 
     void setup_reservoir();
+
+    void train(const Eigen::MatrixXd &input_data, const Eigen::MatrixXd &training_data);
 };
 
 
