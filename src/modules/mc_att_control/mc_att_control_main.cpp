@@ -615,7 +615,55 @@ int MulticopterAttitudeControl::print_status()
 
 int MulticopterAttitudeControl::custom_command(int argc, char *argv[])
 {
-	return print_usage("unknown command");
+    if (!is_running()) {
+        print_usage("not running");
+        return 1;
+    }
+    if (!strcmp(argv[0], "createRes")) {
+        PX4_INFO_RAW("Reservoir created \n");
+        return 0;
+
+    } else if (!strcmp(argv[0], "trainRes")) {
+        if(argc==2){
+            PX4_INFO_RAW("Reservoir %s has trained\n",argv[1]);
+            return 0;
+        }
+        else if(argc==1){
+            PX4_INFO_RAW("All Reservoirs have trained \n");
+            return 0;
+        }
+        else{
+            // print error
+        }
+    }
+    else if (!strcmp(argv[0], "deleteRes")) {
+        if(argc==2){
+            PX4_INFO_RAW("Reservoir %s deleted \n",argv[1]);
+            return 0;
+        }
+        else{
+            // print error
+        }
+    }
+    else if (!strcmp(argv[0], "countRes")) {
+        int count=0;
+        PX4_INFO_RAW("The Reservoir count is %i \n",count);
+        return 0;
+    }
+    else if (!strcmp(argv[0], "statusRes")) {
+        PX4_INFO_RAW("The Reservoir is running \n");
+        return 0;
+    }
+    else if (!strcmp(argv[0], "setAlpha")) {
+        if(argc==2){
+            PX4_INFO_RAW("Alpha is set to %s \n",argv[1]);
+            return 0;
+        }
+        else{
+            // print error
+        }
+    }
+    return print_usage("unknown command");
 }
 
 int MulticopterAttitudeControl::print_usage(const char *reason)
@@ -645,9 +693,22 @@ To reduce control latency, the module directly polls on the gyro topic published
 
 )DESCR_STR");
 
-	PRINT_MODULE_USAGE_NAME("mc_att_control", "controller");
-	PRINT_MODULE_USAGE_COMMAND("start");
-	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
+    PRINT_MODULE_USAGE_NAME("mc_att_control", "controller");
+    PRINT_MODULE_USAGE_COMMAND("start");
+    PRINT_MODULE_USAGE_ARG("vtol", "VTOL mode", true);
+    PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
+    PRINT_MODULE_USAGE_NAME("mc_att_control", "controller"); \
+	PRINT_MODULE_USAGE_COMMAND_DESCR("createRes", "creates a reservoir object"); \
+	PRINT_MODULE_USAGE_COMMAND_DESCR("trainRes", ""); \
+	PRINT_MODULE_USAGE_ARG("arguments...", "Train specified reservoir", true); \
+	PRINT_MODULE_USAGE_ARG("no arguments...", "Train all", true); \
+	PRINT_MODULE_USAGE_COMMAND_DESCR("deleteRes", ""); \
+	PRINT_MODULE_USAGE_ARG("arguments...", "Delete specified reservoir", true); \
+	PRINT_MODULE_USAGE_ARG("no arguments...", "Delete all", true); \
+	PRINT_MODULE_USAGE_COMMAND_DESCR("countRes", "print count of reservoir objects"); \
+	PRINT_MODULE_USAGE_COMMAND_DESCR("statusRes", "print status info"); \
+	PRINT_MODULE_USAGE_COMMAND_DESCR("setAlpha", "sets alpha to desired value"); \
+	PRINT_MODULE_USAGE_COMMAND_DESCR("status", "print status info"); \
 
 	return 0;
 }
