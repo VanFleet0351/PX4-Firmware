@@ -59,6 +59,7 @@
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/landing_gear.h>
 #include <vtol_att_control/vtol_type.h>
+#include <lib/reservoir/reservoir_computer.hpp>
 
 #include <AttitudeControl.hpp>
 #include <RateControl.hpp>
