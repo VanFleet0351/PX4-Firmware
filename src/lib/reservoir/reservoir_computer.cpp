@@ -224,8 +224,8 @@ void reservoir_computer::printData(const Eigen::RowVectorXd& input_data)
         return;
     }
     Eigen::VectorXd output_data = predict(input_data);
-    for(int i = 0; i < input_data.length(); i++){
-        writer<< input_data[i] + " " + output_data[i]<<std::endl;
+    for(int i = 0; i < input_data.cols(); i++){
+        writer<< input_data[i] << " " << output_data[i]<<std::endl;
     }
     writer.close();
 }
