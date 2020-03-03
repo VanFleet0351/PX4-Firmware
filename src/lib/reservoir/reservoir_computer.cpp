@@ -107,13 +107,15 @@ reservoir_status_t reservoir_computer::get_reservoir_status()
  */
 void reservoir_computer::calculate_reservoir_propagation(const Eigen::MatrixXd& input, double time_step)
 {
+    //std::cout << current_reservoir_state_ << std::endl;
     //Use runge kutta estimation with the reservoir derivative function to estimate the next reservoir state
     Eigen::MatrixXd k1, k2, k3, k4;
+    Eigen::RowVectorXd previous_state = current_reservoir_state_;
     k1 = calculate_reservoir_evolution(current_reservoir_state_, input);
-    k2 = calculate_reservoir_evolution(current_reservoir_state_ + (time_step / 2) * k1, input);
-    k3 = calculate_reservoir_evolution(current_reservoir_state_ + (time_step / 2) * k2, input);
+    k2 = calculate_reservoir_evolution(current_reservoir_state_ + (time_step / 2.0) * k1, input);
+    k3 = calculate_reservoir_evolution(current_reservoir_state_ + (time_step / 2.0) * k2, input);
     k4 = calculate_reservoir_evolution(current_reservoir_state_ + time_step * k3, input);
-    current_reservoir_state_ += time_step * (k1 + 2 * k2 + 2 * k3 + k4) / 6;
+    current_reservoir_state_ = previous_state + time_step * (k1 + 2 * k2 + 2 * k3 + k4) / 6;
 }
 
 /**
@@ -131,7 +133,7 @@ Eigen::MatrixXd reservoir_computer:: calculate_reservoir_evolution(const Eigen::
 #endif
     //Wendson had it as -leakage_rate_ * state_space + (leakage_rate_ * tanh(W*state_space+W_in*input)
     //might also need to add a bias vector (thesis pg. 20, 21, 22) after input
-    return (((1 - leakage_rate_) * state_space.transpose()) + leakage_rate_ * (W * state_space.transpose() + W_in * input.transpose()).unaryExpr(&hypertan)).transpose();
+    return (((1 - leakage_rate_) * state_space) + leakage_rate_ * (W * state_space + W_in * input).unaryExpr(&hypertan)).transpose();
 }
 
 /**
@@ -146,7 +148,7 @@ void reservoir_computer::update_weights(const Eigen::MatrixXd& target)
     Eigen::MatrixXd X_T = X.transpose();
     //output matrix weights
 
-    W_out = ((X_T * X + regression_parameter_ * I).inverse() * (X_T * target));
+    W_out = (target.transpose() * X) * (X_T * X + regression_parameter_ * I).inverse();
 #ifdef RESERVOIR_DEBUG
     std::cout << "X size: "  << X.rows() << "x" << X.cols() << std::endl;
     std::cout << "X_T size: "  << X_T.rows() << "x" << X_T.cols() << std::endl;
@@ -159,7 +161,6 @@ void reservoir_computer::update_weights(const Eigen::MatrixXd& target)
  * Initialization
  */
 void reservoir_computer::setup_reservoir() {
-    std::vector<std::pair<int, int> > idx;
     std::random_device rdI;
     std::mt19937 genI(rdI());
     std::uniform_int_distribution<> disI(0, W.rows() - 1);
@@ -170,23 +171,14 @@ void reservoir_computer::setup_reservoir() {
     std::mt19937 genR(rdR());
     std::uniform_real_distribution<> disR(-1.0, 1.0);
     std::random_device rdB;
-    std::mt19937 genB(rdB());
-    std::uniform_real_distribution<> disB(-0.01, 0.01);
 
     std::vector<Eigen::Triplet<double> > tripletList;
-    int percentNonZero = W.rows() * W.cols() * sparsity_;
-    tripletList.reserve(percentNonZero);
-    for (int p = 0; p < percentNonZero; p++) {
+    int nonzero_node_count = sparsity_ * (W.rows() * W.cols());
+    tripletList.reserve(nonzero_node_count);
+    for (int p = 0; p < nonzero_node_count; p++) {
         int i = disI(genI);
         int j = disJ(genJ);
-        idx.emplace_back(i, j);
-        double value = 1e-7;
-        do {
-            if (j < W.cols() - 1)
-                value = disR(genR);
-            else
-                value = disB(genB);
-        } while (value < 1e-6);
+        double value = disR(genR);
         tripletList.emplace_back(i, j, value);
     }
     W.setFromTriplets(tripletList.begin(), tripletList.end());
@@ -220,9 +212,9 @@ Eigen::VectorXd reservoir_computer::predict(const Eigen::RowVectorXd& input_data
 {
     calculate_reservoir_propagation(input_data, 1);
 #ifdef RESERVOIR_DEBUG
-    std::cout << "Result" << current_reservoir_state_ * W_out << std::endl;
+    std::cout << "Result" << W_out * current_reservoir_state_.transpose()<< std::endl;
 #endif
-    return current_reservoir_state_ * W_out;
+    return (W_out * current_reservoir_state_.transpose()).transpose();
 }
 
 void reservoir_computer::reset()
