@@ -12,6 +12,7 @@
 #include <eigen3/Eigen/Sparse>
 #include <eigen3/Eigen/Eigenvalues>
 #include <eigen3/Eigen/LU>
+#include <iostream>
 
 #define RETURN_CODE_DEFAULT 0
 #define RETURN_CODE_ERROR -1
@@ -35,14 +36,16 @@ public:
 
     reservoir_status_t get_reservoir_status();
 
-    Eigen::VectorXd predict(const Eigen::VectorXd &input);
+    Eigen::VectorXd predict(const Eigen::RowVectorXd &input);
+    void train(const Eigen::MatrixXd &input_data, const Eigen::MatrixXd &training_data);
+    void reset();
 
 private:
     Eigen::MatrixXd W_in; //Input weights
     Eigen::SparseMatrix<double> W; //Reservoir nodes in represented by a matrix
     Eigen::MatrixXd W_out; //Output weights
     Eigen::MatrixXd reservoir_evolution_;
-    Eigen::VectorXd current_reservoir_state_;
+    Eigen::RowVectorXd current_reservoir_state_;
     //hyperparameters
     double sparsity_; // k in Canaday's paper usually around 10%
     double spectral_radius_; // rho. 1.0 is a good starting point per thesis
@@ -58,8 +61,6 @@ private:
     void calculate_reservoir_propagation(const Eigen::MatrixXd &input, double time_step);
 
     void setup_reservoir();
-
-    void train(const Eigen::MatrixXd &input_data, const Eigen::MatrixXd &training_data);
 };
 
 

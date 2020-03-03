@@ -14,16 +14,15 @@ reservoir_computer::reservoir_computer(uint8_t input_vector_size, uint16_t reser
 double sparsity, double spectral_radius, double leakage_rate, double reg_param)
 : sparsity_(sparsity), spectral_radius_(spectral_radius), leakage_rate_(leakage_rate),
 regression_parameter_(reg_param), current_status_(NOT_TRAINED) {
-    auto temp_matrix = Eigen::MatrixXd::Random(reservoir_size, input_vector_size);
     //input matrix reservoir_size x reservoir_size
-    W_in = temp_matrix.sparseView();
+    W_in = Eigen::MatrixXd::Random(reservoir_size, input_vector_size);
     //nodes in the reservoir itself
     //Dr.Guathier suggested trying a linear topology
     W = Eigen::SparseMatrix<double>(reservoir_size, reservoir_size);
     //output weights
-    W_out = Eigen::SparseMatrix<double>(output_vector_size, reservoir_size);
+    W_out = Eigen::MatrixXd(output_vector_size, reservoir_size);
     setup_reservoir();
-    reservoir_evolution_ = Eigen::MatrixXd(reservoir_size, 1);
+    reservoir_evolution_ = Eigen::MatrixXd::Constant(1, reservoir_size, 0);
 }
 
 /**
@@ -114,20 +113,7 @@ void reservoir_computer::calculate_reservoir_propagation(const Eigen::MatrixXd& 
     k2 = calculate_reservoir_evolution(current_reservoir_state_ + (time_step / 2) * k1, input);
     k3 = calculate_reservoir_evolution(current_reservoir_state_ + (time_step / 2) * k2, input);
     k4 = calculate_reservoir_evolution(current_reservoir_state_ + time_step * k3, input);
-    current_reservoir_state_ += (k1 + 2 * k2 + 2 * k3 + k4) / 6;
-}
-
-/**
- * Update the weights of the W_out matrix
- * @param reservoir_state
- * @param target
- */
-void reservoir_computer::update_weights(const Eigen::MatrixXd& target)
-{
-    Eigen::MatrixXd I = Eigen::MatrixXd::Identity(reservoir_evolution_.rows(), reservoir_evolution_.cols());
-    Eigen::MatrixXd X_T = reservoir_evolution_.transpose();
-    //output matrix weights
-    W_out = ((X_T * reservoir_evolution_ + regression_parameter_ * I).inverse() * X_T * target).sparseView();
+    current_reservoir_state_ += time_step * (k1 + 2 * k2 + 2 * k3 + k4) / 6;
 }
 
 /**
@@ -138,9 +124,35 @@ void reservoir_computer::update_weights(const Eigen::MatrixXd& target)
  */
 Eigen::MatrixXd reservoir_computer:: calculate_reservoir_evolution(const Eigen::MatrixXd& state_space, const Eigen::MatrixXd& input)
 {
+#ifdef RESERVOIR_DEBUG
+    std::cout << "Input size: "  << input.rows() << "x" << input.cols() << std::endl;
+    std::cout << "W_in: "  << W_in.rows() << "x" << W_in.cols() << std::endl;
+    std::cout << "W_in * Input: "  << (W_in*input).rows() << "x" << (W_in*input).cols() << std::endl;
+#endif
     //Wendson had it as -leakage_rate_ * state_space + (leakage_rate_ * tanh(W*state_space+W_in*input)
     //might also need to add a bias vector (thesis pg. 20, 21, 22) after input
-    return (1 - leakage_rate_) * state_space + leakage_rate_ * (W * state_space + W_in * input).unaryExpr(&hypertan);
+    return (((1 - leakage_rate_) * state_space.transpose()) + leakage_rate_ * (W * state_space.transpose() + W_in * input.transpose()).unaryExpr(&hypertan)).transpose();
+}
+
+/**
+ * Update the weights of the W_out matrix
+ * @param reservoir_state
+ * @param target
+ */
+void reservoir_computer::update_weights(const Eigen::MatrixXd& target)
+{
+    Eigen::MatrixXd I = Eigen::MatrixXd::Identity(W.rows(), W.cols());
+    Eigen::MatrixXd X = reservoir_evolution_.bottomRows(reservoir_evolution_.rows() - 1);
+    Eigen::MatrixXd X_T = X.transpose();
+    //output matrix weights
+
+    W_out = ((X_T * X + regression_parameter_ * I).inverse() * (X_T * target));
+#ifdef RESERVOIR_DEBUG
+    std::cout << "X size: "  << X.rows() << "x" << X.cols() << std::endl;
+    std::cout << "X_T size: "  << X_T.rows() << "x" << X_T.cols() << std::endl;
+    std::cout << "target size: "  << target.rows() << "x" << target.cols() << std::endl;
+    std::cout << "W_out: "  << W_out.rows() << "x" << W_out.cols() << std::endl;
+#endif
 }
 
 /*
@@ -187,23 +199,40 @@ void reservoir_computer::setup_reservoir() {
 
 void reservoir_computer::train(const Eigen::MatrixXd& input_data, const Eigen::MatrixXd &training_data)
 {
+    std::cout << ">>TRAINING<<" << std::endl;
     current_status_ = TRAINING;
-    current_reservoir_state_ = reservoir_evolution_.col(reservoir_evolution_.cols() - 1);
-    for(int i = 0; i < input_data.rows(); i++)
+    current_reservoir_state_ = reservoir_evolution_.row(reservoir_evolution_.rows() - 1);
+    for(long i = 0; i < input_data.rows(); i++)
     {
         //Get the current state of the reservoir
         //Calculate the propogation of the reservoir
         calculate_reservoir_propagation(input_data.row(i), 1);
         //Expand the reservoir evolution matrix by 1 and set the new value
-        reservoir_evolution_.conservativeResize(reservoir_evolution_.rows(), reservoir_evolution_.cols() + 1);
-        reservoir_evolution_.col(reservoir_evolution_.cols() - 1) = current_reservoir_state_;
+        reservoir_evolution_.conservativeResize(reservoir_evolution_.rows() + 1, reservoir_evolution_.cols());
+        reservoir_evolution_.row(reservoir_evolution_.rows() - 1) = current_reservoir_state_;
     }
     update_weights(training_data);
     current_status_ = TRAINED;
+    std::cout << ">>TRAINED<<" << std::endl;
 }
 
-Eigen::VectorXd reservoir_computer::predict(const Eigen::VectorXd& input_data)
+Eigen::VectorXd reservoir_computer::predict(const Eigen::RowVectorXd& input_data)
 {
     calculate_reservoir_propagation(input_data, 1);
-    return W_out * current_reservoir_state_;
+#ifdef RESERVOIR_DEBUG
+    std::cout << "Result" << current_reservoir_state_ * W_out << std::endl;
+#endif
+    return current_reservoir_state_ * W_out;
+}
+
+void reservoir_computer::reset()
+{
+    W_in = Eigen::MatrixXd::Random(W.rows(), W_in.cols());
+    //nodes in the reservoir itself
+    //Dr.Guathier suggested trying a linear topology
+    W = Eigen::SparseMatrix<double>(W.rows(), W.cols());
+    //output weights
+    W_out = Eigen::MatrixXd(W_out.rows(), W.rows());
+    setup_reservoir();
+    reservoir_evolution_ = Eigen::MatrixXd::Constant(1, W.rows(), 0);
 }
