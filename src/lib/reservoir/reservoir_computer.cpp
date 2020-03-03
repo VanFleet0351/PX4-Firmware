@@ -225,6 +225,19 @@ Eigen::VectorXd reservoir_computer::predict(const Eigen::RowVectorXd& input_data
     return current_reservoir_state_ * W_out;
 }
 
+void reservoir_computer::printData(const Eigen::RowVectorXd& input_data)
+{
+    std::ofstream writer("data.txt");
+    if(!writer){
+        return;
+    }
+    Eigen::VectorXd output_data = predict(input_data);
+    for(int i = 0; i < input_data.length(); i++){
+        writer<< input_data[i] + " " + output_data[i]<<std::endl;
+    }
+    writer.close();
+}
+
 void reservoir_computer::reset()
 {
     W_in = Eigen::MatrixXd::Random(W.rows(), W_in.cols());
