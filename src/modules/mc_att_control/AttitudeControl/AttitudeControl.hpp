@@ -49,7 +49,6 @@
 #pragma once
 
 #include <matrix/matrix/math.hpp>
-#include <lib/reservoir/reservoir_computer.hpp>
 
 class AttitudeControl
 {

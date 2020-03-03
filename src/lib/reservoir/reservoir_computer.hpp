@@ -8,10 +8,10 @@
 #include <stdint.h>
 #include <random>
 //#include <drivers/drv_hrt.h>
-#include <Eigen/Core>
-#include <Eigen/Sparse>
-#include <Eigen/Eigenvalues>
-#include <Eigen/LU>
+#include <eigen3/Eigen/Core>
+#include <eigen3/Eigen/Sparse>
+#include <eigen3/Eigen/Eigenvalues>
+#include <eigen3/Eigen/LU>
 
 #define RETURN_CODE_DEFAULT 0
 #define RETURN_CODE_ERROR -1
