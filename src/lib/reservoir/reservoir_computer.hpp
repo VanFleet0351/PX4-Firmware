@@ -7,6 +7,9 @@
 
 #include <stdint.h>
 #include <random>
+#include <fstream>
+#include <string>
+#include <iostream>
 //#include <drivers/drv_hrt.h>
 #include <eigen3/Eigen/Core>
 #include <eigen3/Eigen/Sparse>
@@ -33,6 +36,8 @@ public:
     double get_leakage_rate();
 
     double get_regression_parameter();
+
+    void printData(const Eigen::RowVectorXd& input_data);
 
     reservoir_status_t get_reservoir_status();
 
