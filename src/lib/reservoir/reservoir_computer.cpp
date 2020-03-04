@@ -185,9 +185,10 @@ void reservoir_computer::setup_reservoir() {
     W.setFromTriplets(tripletList.begin(), tripletList.end());
     Eigen::SparseMatrix<double> W_0(W.rows(), W.cols());
     Eigen::SelfAdjointEigenSolver<Eigen::SparseMatrix<double> > es(W);
+    double max_eigen_value = es.eigenvalues().unaryExpr(&fabs).maxCoeff();
     W_0 = W * (1 / fabs(es.eigenvalues()[W.rows() - 1]));//minimalESN normalize with 1.25, Jaeger 2002 with 1
     //thesis pg. 21
-    W = spectral_radius_ * W_0;
+    W = spectral_radius_/max_eigen_value * W;
 }
 
 void reservoir_computer::train(const Eigen::MatrixXd& input_data, const Eigen::MatrixXd &training_data)
@@ -231,6 +232,7 @@ void reservoir_computer::print_data(const Eigen::MatrixXd& input_data)
         writer << input_data.row(i) << ", " << predict(input_data.row(i))<<std::endl;
     }
     writer.close();
+    std::cout << "Finished writing" << std::endl;
 }
 
 void reservoir_computer::reset()
