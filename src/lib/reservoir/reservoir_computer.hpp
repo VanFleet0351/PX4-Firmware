@@ -37,7 +37,7 @@ public:
 
     double get_regression_parameter();
 
-    void printData(const Eigen::RowVectorXd& input_data);
+    void print_data(const Eigen::RowVectorXd& input_data);
 
     reservoir_status_t get_reservoir_status();
 
@@ -51,6 +51,8 @@ private:
     Eigen::MatrixXd W_out; //Output weights
     Eigen::MatrixXd reservoir_evolution_;
     Eigen::RowVectorXd current_reservoir_state_;
+
+    Eigen::VectorXd bias_;
     //hyperparameters
     double sparsity_; // k in Canaday's paper usually around 10%
     double spectral_radius_; // rho. 1.0 is a good starting point per thesis

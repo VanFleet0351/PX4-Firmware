@@ -23,6 +23,7 @@ regression_parameter_(reg_param), current_status_(NOT_TRAINED) {
     W_out = Eigen::MatrixXd(output_vector_size, reservoir_size);
     setup_reservoir();
     reservoir_evolution_ = Eigen::MatrixXd::Constant(1, reservoir_size, 0);
+    bias_ = Eigen::VectorXd::Random(reservoir_size);
 }
 
 /**
@@ -115,7 +116,7 @@ void reservoir_computer::calculate_reservoir_propagation(const Eigen::MatrixXd& 
     k2 = calculate_reservoir_evolution(current_reservoir_state_ + (time_step / 2.0) * k1, input);
     k3 = calculate_reservoir_evolution(current_reservoir_state_ + (time_step / 2.0) * k2, input);
     k4 = calculate_reservoir_evolution(current_reservoir_state_ + time_step * k3, input);
-    current_reservoir_state_ = previous_state + time_step * (k1 + 2 * k2 + 2 * k3 + k4) / 6;
+    current_reservoir_state_ =  previous_state + (k1 + 2 * k2 + 2 * k3 + k4) / 6;
 }
 
 /**
@@ -133,7 +134,7 @@ Eigen::MatrixXd reservoir_computer:: calculate_reservoir_evolution(const Eigen::
 #endif
     //Wendson had it as -leakage_rate_ * state_space + (leakage_rate_ * tanh(W*state_space+W_in*input)
     //might also need to add a bias vector (thesis pg. 20, 21, 22) after input
-    return (((1 - leakage_rate_) * state_space) + leakage_rate_ * (W * state_space + W_in * input).unaryExpr(&hypertan)).transpose();
+    return (((-leakage_rate_) * state_space) + leakage_rate_ * (W * state_space + W_in * input + bias_ ).unaryExpr(&hypertan)).transpose();
 }
 
 /**
@@ -193,6 +194,7 @@ void reservoir_computer::train(const Eigen::MatrixXd& input_data, const Eigen::M
 {
     std::cout << ">>TRAINING<<" << std::endl;
     current_status_ = TRAINING;
+
     current_reservoir_state_ = reservoir_evolution_.row(reservoir_evolution_.rows() - 1);
     for(long i = 0; i < input_data.rows(); i++)
     {
@@ -204,6 +206,7 @@ void reservoir_computer::train(const Eigen::MatrixXd& input_data, const Eigen::M
         reservoir_evolution_.row(reservoir_evolution_.rows() - 1) = current_reservoir_state_;
     }
     update_weights(training_data);
+
     current_status_ = TRAINED;
     std::cout << ">>TRAINED<<" << std::endl;
 }
@@ -217,15 +220,15 @@ Eigen::VectorXd reservoir_computer::predict(const Eigen::RowVectorXd& input_data
     return (W_out * current_reservoir_state_.transpose()).transpose();
 }
 
-void reservoir_computer::printData(const Eigen::RowVectorXd& input_data)
+void reservoir_computer::print_data(const Eigen::RowVectorXd& input_data)
 {
-    std::ofstream writer("data.txt");
+    std::ofstream writer("data.csv");
     if(!writer){
         return;
     }
-    Eigen::VectorXd output_data = predict(input_data);
-    for(int i = 0; i < input_data.cols(); i++){
-        writer<< input_data[i] << " " << output_data[i]<<std::endl;
+    Eigen::VectorXd output_data;
+    for(int i = 0; i < input_data.rows(); i++){
+        writer << input_data[i] << ", " << predict(input_data.row(i))<<std::endl;
     }
     writer.close();
 }
