@@ -37,7 +37,7 @@ public:
 
     double get_regression_parameter();
 
-    void print_data(const Eigen::RowVectorXd& input_data);
+    void print_data(const Eigen::MatrixXd& input_data);
 
     reservoir_status_t get_reservoir_status();
 

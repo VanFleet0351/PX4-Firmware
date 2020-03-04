@@ -220,7 +220,7 @@ Eigen::VectorXd reservoir_computer::predict(const Eigen::RowVectorXd& input_data
     return (W_out * current_reservoir_state_.transpose()).transpose();
 }
 
-void reservoir_computer::print_data(const Eigen::RowVectorXd& input_data)
+void reservoir_computer::print_data(const Eigen::MatrixXd& input_data)
 {
     std::ofstream writer("data.csv");
     if(!writer){
@@ -228,7 +228,7 @@ void reservoir_computer::print_data(const Eigen::RowVectorXd& input_data)
     }
     Eigen::VectorXd output_data;
     for(int i = 0; i < input_data.rows(); i++){
-        writer << input_data[i] << ", " << predict(input_data.row(i))<<std::endl;
+        writer << input_data.row(i) << ", " << predict(input_data.row(i))<<std::endl;
     }
     writer.close();
 }
