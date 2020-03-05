@@ -11,6 +11,10 @@ private:
 bool test_reservoir_regression_parameter();
 bool test_reservoir_leakage_rate();
 bool test_reservoir_dimensions();
+bool test_update_regression_parameter_untrained_reservoir();
+bool test_update_leakage_rate_untrained_reservoir();
+bool test_update_regression_parameter_trained_reservoir();
+bool test_update_leakage_rate_trained_reservoir();
 };
 
 bool ReservoirComputerTests::run_tests()
@@ -18,6 +22,10 @@ bool ReservoirComputerTests::run_tests()
     ut_run_test(test_reservoir_regression_parameter);
     ut_run_test(test_reservoir_leakage_rate);
     ut_run_test(test_reservoir_dimensions);
+    ut_run_test(test_update_regression_parameter_untrained_reservoir);
+    ut_run_test(test_update_leakage_rate_untrained_reservoir);
+    ut_run_test(test_update_regression_parameter_trained_reservoir);
+    ut_run_test(test_update_leakage_rate_trained_reservoir);
 
     return (_tests_failed == 0);
 }
@@ -45,12 +53,50 @@ bool ReservoirComputerTests::test_reservoir_dimensions()
     return true;
 }
 
-bool test_update_regression_parameter_untrained_reservoir()
+bool ReservoirComputerTests::test_update_regression_parameter_untrained_reservoir()
 {
-    Eigen::VectorXd input;
-    
     reservoir_computer res(1, 30, 1, 0.1, 0.8, 1, 1e-06);
+    int return_value = res.update_regression_parameter(1);
+    ut_compare_float("Check the regression parameter is set correctly by the update call", res.get_regression_parameter(), 1, 1e-07);
+    ut_compare("Check the return value is 0", return_value, 0);
+
+    return true;
 }
 
+bool ReservoirComputerTests::test_update_leakage_rate_untrained_reservoir()
+{
+    reservoir_computer res(1, 30, 1, 0.1, 0.8, 2, 1e-06);
+    int return_value = res.update_leakage_rate(1);
+    ut_compare_float("Check the leakage is set correctly by the update call", res.get_leakage_rate(), 1, 1e-07);
+    ut_compare("Check the return value is 0", return_value, 0);
+
+    return true;
+}
+
+bool ReservoirComputerTests::test_update_regression_parameter_trained_reservoir()
+{
+    Eigen::VectorXd input(1);
+    input << 4;
+    reservoir_computer res(1, 30, 1, 0.1, 0.8, 1, 1e-06);
+    res.train(input, input);
+    int return_value = res.update_regression_parameter(1);
+    ut_compare_float("Check the regression parameter is set correctly by the update call", res.get_regression_parameter(), 1e-06, 1e-07);
+    ut_compare("Check the return value is -1", return_value, -1);
+
+    return true;
+}
+
+bool ReservoirComputerTests::test_update_leakage_rate_trained_reservoir()
+{
+    Eigen::VectorXd input(1);
+    input << 4;
+    reservoir_computer res(1, 30, 1, 0.1, 0.8, 1, 1e-06);
+    res.train(input, input);
+    int return_value = res.update_leakage_rate(2);
+    ut_compare_float("Check the leakage is set correctly by the update call", res.get_leakage_rate(), 1, 1e-07);
+    ut_compare("Check the return value is -1", return_value, -1);
+
+    return true;
+}
 
 ut_declare_test_c(test_reservoir, ReservoirComputerTests)
