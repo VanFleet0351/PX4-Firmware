@@ -37,6 +37,12 @@ public:
 
     double get_regression_parameter();
 
+    uint8_t get_input_dimension();
+
+    uint16_t get_reservoir_dimension();
+
+    uint8_t get_output_dimension();
+
     void print_data(const Eigen::MatrixXd& input_data);
 
     reservoir_status_t get_reservoir_status();
@@ -46,20 +52,24 @@ public:
     void reset();
 
 private:
-    Eigen::MatrixXd W_in; //Input weights
-    Eigen::SparseMatrix<double> W; //Reservoir nodes in represented by a matrix
-    Eigen::MatrixXd W_out; //Output weights
-    Eigen::MatrixXd reservoir_evolution_;
-    Eigen::RowVectorXd current_reservoir_state_;
-
-    Eigen::VectorXd bias_;
     //hyperparameters
     double sparsity_; // k in Canaday's paper usually around 10%
     double spectral_radius_; // rho. 1.0 is a good starting point per thesis
     double leakage_rate_; //gamma for Wendson, a for Canaday. I've seen this set to 0.3, but canaday replaced it with h/c. thesis page 20 & 21
     double regression_parameter_; //alpha. Canaday has this at 1e-6, I've seen others use 1e-8
 
+    uint8_t input_dimension_;
+    uint16_t reservoir_dimension_;
+    uint8_t output_dimension_;
+
     reservoir_status_t current_status_; //Current state of the reservoir. Allows us to figure out whether to allow parameter updates
+
+    Eigen::MatrixXd W_in; //Input weights
+    Eigen::SparseMatrix<double> W; //Reservoir nodes in represented by a matrix
+    Eigen::MatrixXd W_out; //Output weights
+    Eigen::MatrixXd reservoir_evolution_;
+    Eigen::RowVectorXd current_reservoir_state_;
+    Eigen::VectorXd bias_;
 
     void update_weights(const Eigen::MatrixXd &target);
 
