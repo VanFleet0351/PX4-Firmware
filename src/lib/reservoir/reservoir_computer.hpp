@@ -26,8 +26,9 @@ enum reservoir_status_t {
 
 class reservoir_computer {
 public:
-    explicit reservoir_computer(uint8_t input_vector_size, uint16_t reservoir_size, uint8_t output_vector_size,
-                                double sparsity, double spectral_radius, double leakage_rate, double reg_param);
+    explicit reservoir_computer(uint8_t input_vector_size, uint16_t reservoir_size,
+                                uint8_t output_vector_size, double sparsity, double spectral_radius,
+                                double leakage_rate, double reg_param, double washout);
 
     int update_leakage_rate(double);
 
@@ -57,6 +58,7 @@ private:
     double spectral_radius_; // rho. 1.0 is a good starting point per thesis
     double leakage_rate_; //gamma for Wendson, a for Canaday. I've seen this set to 0.3, but canaday replaced it with h/c. thesis page 20 & 21
     double regression_parameter_; //alpha. Canaday has this at 1e-6, I've seen others use 1e-8
+    double washout_;
 
     uint8_t input_dimension_;
     uint16_t reservoir_dimension_;
@@ -75,7 +77,9 @@ private:
 
     Eigen::MatrixXd calculate_reservoir_evolution(const Eigen::MatrixXd &state_space, const Eigen::MatrixXd &input);
 
-    void calculate_reservoir_propagation(const Eigen::MatrixXd &input, double time_step);
+    Eigen::RowVectorXd calculate_reservoir_propagation(const Eigen::RowVectorXd &input,
+                                                       const Eigen::RowVectorXd &previous_state,
+                                                       double time_step);
 
     void setup_reservoir();
 };

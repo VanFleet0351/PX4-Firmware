@@ -20,10 +20,11 @@ inline double hypertan(double x) {
  * @param leakage_rate Leakage rate of the nodes
  * @param reg_param Alpha parameter used to calculate output weights
  */
-reservoir_computer::reservoir_computer(uint8_t input_vector_size, uint16_t reservoir_size, uint8_t output_vector_size,
-                                       double sparsity, double spectral_radius, double leakage_rate, double reg_param)
+reservoir_computer::reservoir_computer(uint8_t input_vector_size, uint16_t reservoir_size,
+                                       uint8_t output_vector_size, double sparsity, double spectral_radius,
+                                       double leakage_rate, double reg_param, double washout)
         : sparsity_(sparsity), spectral_radius_(spectral_radius), leakage_rate_(leakage_rate),
-          regression_parameter_(reg_param), input_dimension_(input_vector_size),
+          regression_parameter_(reg_param), washout_(washout),  input_dimension_(input_vector_size),
           reservoir_dimension_(reservoir_size), output_dimension_(output_vector_size), current_status_(NOT_TRAINED) {
     //input matrix reservoir_size x reservoir_size
     W_in = Eigen::MatrixXd::Random(reservoir_dimension_, input_dimension_);
@@ -111,16 +112,17 @@ uint8_t reservoir_computer::get_output_dimension() {
  * @param input Input data matrix
  * @param time_step The time delta
  */
-void reservoir_computer::calculate_reservoir_propagation(const Eigen::MatrixXd &input, double time_step) {
+Eigen::RowVectorXd reservoir_computer::calculate_reservoir_propagation(const Eigen::RowVectorXd &input,
+                                                                       const Eigen::RowVectorXd &previous_state,
+                                                                       double time_step) {
     //std::cout << current_reservoir_state_ << std::endl;
     //Use runge kutta estimation with the reservoir derivative function to estimate the next reservoir state
     Eigen::MatrixXd k1, k2, k3, k4;
-    Eigen::RowVectorXd previous_state = current_reservoir_state_;
-    k1 = calculate_reservoir_evolution(current_reservoir_state_, input);
-    k2 = calculate_reservoir_evolution(current_reservoir_state_ + (time_step / 2.0) * k1, input);
-    k3 = calculate_reservoir_evolution(current_reservoir_state_ + (time_step / 2.0) * k2, input);
-    k4 = calculate_reservoir_evolution(current_reservoir_state_ + time_step * k3, input);
-    current_reservoir_state_ = previous_state + (k1 + 2 * k2 + 2 * k3 + k4) / 6;
+    k1 = calculate_reservoir_evolution(previous_state, input);
+    k2 = calculate_reservoir_evolution(previous_state + (time_step / 2.0) * k1, input);
+    k3 = calculate_reservoir_evolution(previous_state + (time_step / 2.0) * k2, input);
+    k4 = calculate_reservoir_evolution(previous_state + time_step * k3, input);
+    return previous_state + (k1 + 2 * k2 + 2 * k3 + k4) / 6;
 }
 
 /**
@@ -199,23 +201,27 @@ void reservoir_computer::train(const Eigen::MatrixXd &input_data, const Eigen::M
     std::cout << ">>TRAINING<<" << std::endl;
     current_status_ = TRAINING;
 
+    int discard_amount = input_data.rows() * washout_;
     current_reservoir_state_ = reservoir_evolution_.row(reservoir_evolution_.rows() - 1);
     for (long i = 0; i < input_data.rows(); i++) {
         //Get the current state of the reservoir
         //Calculate the propogation of the reservoir
-        calculate_reservoir_propagation(input_data.row(i), 1);
+        current_reservoir_state_ = calculate_reservoir_propagation(input_data.row(i), current_reservoir_state_, 1);
         //Expand the reservoir evolution matrix by 1 and set the new value
-        reservoir_evolution_.conservativeResize(reservoir_evolution_.rows() + 1, reservoir_evolution_.cols());
-        reservoir_evolution_.row(reservoir_evolution_.rows() - 1) = current_reservoir_state_;
+        if(i > discard_amount)
+        {
+            reservoir_evolution_.conservativeResize(reservoir_evolution_.rows() + 1, reservoir_evolution_.cols());
+            reservoir_evolution_.row(reservoir_evolution_.rows() - 1) = current_reservoir_state_;
+        }
     }
-    update_weights(training_data);
+    update_weights(training_data.bottomRows(training_data.rows() - discard_amount));
 
     current_status_ = TRAINED;
     std::cout << ">>TRAINED<<" << std::endl;
 }
 
 Eigen::VectorXd reservoir_computer::predict(const Eigen::RowVectorXd &input_data) {
-    calculate_reservoir_propagation(input_data, 1);
+    current_reservoir_state_ = calculate_reservoir_propagation(input_data, current_reservoir_state_, 1);
 #ifdef RESERVOIR_DEBUG
     std::cout << "Result" << W_out * current_reservoir_state_.transpose()<< std::endl;
 #endif
