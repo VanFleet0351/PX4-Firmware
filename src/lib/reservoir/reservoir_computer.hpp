@@ -11,10 +11,10 @@
 #include <string>
 #include <iostream>
 //#include <drivers/drv_hrt.h>
-#include <eigen3/Eigen/Core>
-#include <eigen3/Eigen/Sparse>
-#include <eigen3/Eigen/Eigenvalues>
-#include <eigen3/Eigen/LU>
+#include <Eigen/Core>
+#include <Eigen/Sparse>
+#include <Eigen/Eigenvalues>
+#include <Eigen/LU>
 #include <iostream>
 
 #define RETURN_CODE_DEFAULT 0
