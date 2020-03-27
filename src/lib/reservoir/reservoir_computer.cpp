@@ -10,6 +10,11 @@ inline double hypertan(double x) {
     return std::tanh(x);
 }
 
+inline double absolute_double(double x)
+{
+    return std::fabs(x);
+}
+
 /**
  * Constructs a new reservoir computer
  * @param input_vector_size Size of the inputs
@@ -191,8 +196,8 @@ void reservoir_computer::setup_reservoir() {
     W.setFromTriplets(tripletList.begin(), tripletList.end());
     Eigen::SparseMatrix<double> W_0(W.rows(), W.cols());
     Eigen::SelfAdjointEigenSolver<Eigen::SparseMatrix<double> > es(W);
-    double max_eigen_value = es.eigenvalues().unaryExpr(&fabs).maxCoeff();
-    W_0 = W * (1 / fabs(es.eigenvalues()[W.rows() - 1]));//minimalESN normalize with 1.25, Jaeger 2002 with 1
+    double max_eigen_value = es.eigenvalues().unaryExpr(&absolute_double).maxCoeff();
+    W_0 = W * (1 / absolute_double(es.eigenvalues()[W.rows() - 1]));//minimalESN normalize with 1.25, Jaeger 2002 with 1
     //thesis pg. 21
     W = spectral_radius_ / max_eigen_value * W;
 }
