@@ -2,13 +2,13 @@
 #ifndef PX4_RESERVOIR_MANAGER_HPP
 #define PX4_RESERVOIR_MANAGER_HPP
 
-#include "reservoir_computer.hpp"
+#include "reservoir/reservoir_computer.hpp"
 #include <iostream>
 #include <list>
 #include <iterator>
 using namespace std;
 
-class reservoir_manager(){
+class reservoir_manager{
 	public:
 	explicit reservoir_manager(uint8_t input_vector_size, uint16_t reservoir_size,
                                 uint8_t output_vector_size, double sparsity, double spectral_radius,
@@ -40,5 +40,5 @@ class reservoir_manager(){
 
 
 
-}
+};
 #endif
