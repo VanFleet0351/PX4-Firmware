@@ -10,6 +10,9 @@ reservoir_manager::reservoir_manager(uint8_t input_vector_size, uint16_t reservo
           reservoir_dimension_(reservoir_size), output_dimension_(output_vector_size){
 
 	  }
+/**
+ * Creates a reservoir and adds it to the list
+ */
 void reservoir_manager::create_resrvoirs(){
 	reservoirs.push_back(new reservoir_computer(
 		input_dimension_,  reservoir_dimension_, output_dimension_,
@@ -17,6 +20,9 @@ void reservoir_manager::create_resrvoirs(){
 
 }
 
+/**
+ * Trains reservoirs in the list one at a time
+ */
 void reservoir_manager::train_reservoirs(){
 	list <int> :: iterator it;
     	for(it = reservoirs.begin(); it != reservoirs.end(); ++it){
@@ -26,13 +32,25 @@ void reservoir_manager::train_reservoirs(){
 	}
 }
 
+/**
+ * Destroys all the reservoirs in the list. clears the list
+ *
+ */
 void reservoir_manager::destroy_reservoirs(){
-	list <int> :: iterator it;
-    	for(it = reservoirs.begin(); it != reservoirs.end(); ++it){
-		*it.reset();
-	}
+	reservoirs.clear();
 }
 
+/**
+ * Deletes one reservoir from the list
+ */
+void reservoir_manager::destroy_reservoir(){
+	reservoirs.pop_back();
+}
+
+/**
+ *
+ * Shows status of each reservoirs
+ */
 void reservoir_manager::show_status(){
 	list <int> :: iterator it;
 	int i=1;

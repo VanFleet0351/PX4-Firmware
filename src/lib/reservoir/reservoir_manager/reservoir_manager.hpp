@@ -18,6 +18,7 @@ class reservoir_manager(){
 	void create_reservoir();
 
 	void destroy_reservoirs();
+	void destroy_reservoir();
 	void train_reservoirs();
 	void show_status();
 
@@ -40,4 +41,4 @@ class reservoir_manager(){
 
 
 }
-
+#endif

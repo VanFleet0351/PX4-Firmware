@@ -60,6 +60,7 @@
 #include <uORB/topics/landing_gear.h>
 #include <vtol_att_control/vtol_type.h>
 #include <lib/reservoir/reservoir_computer.hpp>
+#include <lib/reservoir/reservoir_manager.hpp>
 
 #include <AttitudeControl.hpp>
 #include <RateControl.hpp>
