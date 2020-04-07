@@ -104,6 +104,7 @@ px4_add_module(
 		ecl_geo_lookup # TODO: move this
 		output_limit
 		version
+		reservoir
 	)
 
 add_subdirectory(hrt_test)

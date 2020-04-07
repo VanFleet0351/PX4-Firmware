@@ -6,7 +6,6 @@
 #include <iostream>
 #include <list>
 #include <iterator>
-using namespace std;
 
 class reservoir_manager{
 	public:
@@ -14,7 +13,7 @@ class reservoir_manager{
                                 uint8_t output_vector_size, double sparsity, double spectral_radius,
                                 double leakage_rate, double reg_param, double washout);
 
-	list<reservoir_computer> reservoirs;
+	std::list<reservoir_computer> reservoirs;
 	void create_reservoir();
 
 	void destroy_reservoirs();
@@ -37,8 +36,5 @@ class reservoir_manager{
 	uint8_t input_dimension_;
 	uint16_t reservoir_dimension_;
 	uint8_t output_dimension_;
-
-
-
 };
 #endif

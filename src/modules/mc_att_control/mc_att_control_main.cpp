@@ -55,6 +55,14 @@
 using namespace matrix;
 
 MulticopterAttitudeControl::MulticopterAttitudeControl() :
+    _reservoirs(RESERVOIR_PARAM_INPUT_VECTOR_SIZE,
+                RESERVOIR_PARAM_RESERVOIR_SIZE,
+                RESERVOIR_PARAM_OUTPUT_VECTOR_SIZE,
+                RESERVOIR_PARAM_SPARSITY,
+                RESERVOIR_PARAM_SPECTRAL_RADIUS,
+                RESERVOIR_PARAM_LEAKAGE_RATE,
+                ESERVOIR_PARAM_REGRESSION_PARAM,
+                RESERVOIR_PARAM_WASHOUT),
 	ModuleParams(nullptr),
 	WorkItem(MODULE_NAME, px4::wq_configurations::rate_ctrl),
 	_loop_perf(perf_alloc(PC_ELAPSED, "mc_att_control"))

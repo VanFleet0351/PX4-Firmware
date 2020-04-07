@@ -3,6 +3,7 @@
 add_library(reservoir
         reservoir_computer.cpp)
 
+add_subdirectory(reservoir_manager)
 #target_link_libraries (reservoir Eigen3::Eigen)
 
 #if(PX4_TESTING AND (${PX4_PLATFORM} MATCHES "posix"))

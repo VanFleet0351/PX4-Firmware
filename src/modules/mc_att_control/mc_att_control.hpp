@@ -59,11 +59,19 @@
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/landing_gear.h>
 #include <vtol_att_control/vtol_type.h>
-#include <lib/reservoir/reservoir_computer.hpp>
 #include <lib/reservoir/reservoir_manager/reservoir_manager.hpp>
 
 #include <AttitudeControl.hpp>
 #include <RateControl.hpp>
+
+#define RESERVOIR_PARAM_INPUT_VECTOR_SIZE 6
+#define RESERVOIR_PARAM_RESERVOIR_SIZE 100
+#define RESERVOIR_PARAM_OUTPUT_VECTOR_SIZE 4
+#define RESERVOIR_PARAM_SPARSITY 0.01
+#define RESERVOIR_PARAM_SPECTRAL_RADIUS 0.01
+#define RESERVOIR_PARAM_LEAKAGE_RATE 5
+#define ESERVOIR_PARAM_REGRESSION_PARAM 0.01
+#define RESERVOIR_PARAM_WASHOUT 0.05
 
 /**
  * Multicopter attitude control app start / stop handling function
@@ -95,7 +103,7 @@ public:
 	bool init();
 
 private:
-
+    
 	/**
 	 * initialize some vectors/matrices from parameters
 	 */
@@ -137,6 +145,8 @@ private:
 	 */
 	void		control_attitude_rates(float dt, const matrix::Vector3f &rates);
 
+    reservoir_manager _reservoirs;
+	
 	AttitudeControl _attitude_control; ///< class for attitude control calculations
 	RateControl _rate_control; ///< class for rate control calculations
 

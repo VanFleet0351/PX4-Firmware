@@ -49,4 +49,5 @@ px4_add_module(
 		RateControl
 		px4_work_queue
 		reservoir
+		reservoir_manager
 	)
