@@ -631,26 +631,29 @@ int MulticopterAttitudeControl::custom_command(int argc, char *argv[])
         PX4_INFO_RAW("Reservoir created \n");
         return 0;
 
-    } else if (!strcmp(argv[0], "trainRes")) {
+    }
+    else if (!strcmp(argv[0], "trainRes")) {
         if(argc==2){
             PX4_INFO_RAW("Reservoir %s has trained\n",argv[1]);
             return 0;
         }
         else if(argc==1){
+            reservoir_manager::train_reservoirs();
             PX4_INFO_RAW("All Reservoirs have trained \n");
             return 0;
-        }
-        else{
-            // print error
         }
     }
     else if (!strcmp(argv[0], "deleteRes")) {
         if(argc==2){
+            reservoir_manager::destroy_reservoir();
             PX4_INFO_RAW("Reservoir %s deleted \n",argv[1]);
             return 0;
         }
-        else{
-            // print error
+        else if (argc==1)
+        {
+            reservoir_manager::destroy_reservoirs();
+        }
+        else{// print error
         }
     }
     else if (!strcmp(argv[0], "countRes")) {
@@ -660,11 +663,13 @@ int MulticopterAttitudeControl::custom_command(int argc, char *argv[])
     }
     else if (!strcmp(argv[0], "statusRes")) {
         PX4_INFO_RAW("The Reservoir is running \n");
-        return 0;
-    }
+        return 0;}
     else if (!strcmp(argv[0], "setAlpha")) {
         if(argc==2){
             PX4_INFO_RAW("Alpha is set to %s \n",argv[1]);
+            char **ptr = nullptr; // dummy
+            reservoir_manager::update_regression_parameter(strtod(argv[1],ptr));
+            PX4_INFO_RAW("Alpha is set to %f \n",argv[1]);
             return 0;
         }
         else{

@@ -13,16 +13,15 @@ class reservoir_manager{
                                 uint8_t output_vector_size, double sparsity, double spectral_radius,
                                 double leakage_rate, double reg_param, double washout);
 
-	std::list<reservoir_computer> reservoirs;
-	void create_reservoir();
-
-	void destroy_reservoirs();
-	void destroy_reservoir();
-	void train_reservoirs();
-	void show_status();
-
+    static std::list<reservoir_computer> reservoirs;
+    void create_reservoir();
+    static void destroy_reservoirs();
+    static void destroy_reservoir();
+    static void train_reservoirs();
+    void show_status();
 
 
+    static void update_regression_parameter(double alpha);
 
 
 	private:

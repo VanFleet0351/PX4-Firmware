@@ -44,6 +44,11 @@ void reservoir_manager::destroy_reservoir(){
 	reservoirs.pop_back();
 }
 
+void reservoir_manager::update_regression_parameter(double alpha) {
+    // res.update_regression_parameter(alpha);
+}
+
+
 /**
  *
  * Shows status of each reservoirs
