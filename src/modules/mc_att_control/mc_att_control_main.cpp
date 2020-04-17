@@ -669,7 +669,7 @@ int MulticopterAttitudeControl::custom_command(int argc, char *argv[])
             PX4_INFO_RAW("Alpha is set to %s \n",argv[1]);
             char **ptr = nullptr; // dummy
             reservoir_manager::update_regression_parameter(strtod(argv[1],ptr));
-            PX4_INFO_RAW("Alpha is set to %f \n",argv[1]);
+            PX4_INFO_RAW("Alpha is set to %s \n",argv[1]);
             return 0;
         }
         else{

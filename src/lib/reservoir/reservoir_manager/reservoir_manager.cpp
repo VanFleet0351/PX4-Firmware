@@ -1,5 +1,7 @@
 #include "reservoir_manager.hpp"
 
+std::list<reservoir_computer>reservoir_manager::reservoirs;
+
 reservoir_manager::reservoir_manager(uint8_t input_vector_size, uint16_t reservoir_size,
                                        uint8_t output_vector_size, double sparsity, double spectral_radius,
                                        double leakage_rate, double reg_param, double washout)
