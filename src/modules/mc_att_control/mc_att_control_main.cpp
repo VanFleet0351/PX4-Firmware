@@ -653,7 +653,8 @@ int MulticopterAttitudeControl::custom_command(int argc, char *argv[])
         {
             MulticopterAttitudeControl::reservoirs.destroy_reservoirs();
         }
-        else{// print error
+        else{
+            PX4_ERR("Wrong number of arguments");
         }
     }
     else if (!strcmp(argv[0], "countRes")) {
@@ -673,7 +674,7 @@ int MulticopterAttitudeControl::custom_command(int argc, char *argv[])
             return 0;
         }
         else{
-            // print error
+            PX4_ERR("Wrong number of arguments");
         }
     }
     return print_usage("unknown command");
