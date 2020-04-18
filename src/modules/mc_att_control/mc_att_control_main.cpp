@@ -54,6 +54,15 @@
 
 using namespace matrix;
 
+reservoir_manager MulticopterAttitudeControl::reservoirs = reservoir_manager(RESERVOIR_PARAM_INPUT_VECTOR_SIZE,
+                                                        RESERVOIR_PARAM_RESERVOIR_SIZE,
+                                                        RESERVOIR_PARAM_OUTPUT_VECTOR_SIZE,
+                                                        RESERVOIR_PARAM_SPARSITY,
+                                                        RESERVOIR_PARAM_SPECTRAL_RADIUS,
+                                                        RESERVOIR_PARAM_LEAKAGE_RATE,
+                                                        ESERVOIR_PARAM_REGRESSION_PARAM,
+                                                        RESERVOIR_PARAM_WASHOUT);
+
 MulticopterAttitudeControl::MulticopterAttitudeControl() :
     ModuleParams(nullptr),
 	WorkItem(MODULE_NAME, px4::wq_configurations::rate_ctrl),
@@ -583,14 +592,6 @@ int MulticopterAttitudeControl::task_spawn(int argc, char *argv[])
 {
 	MulticopterAttitudeControl *instance = new MulticopterAttitudeControl();
 	if (instance) {
-        reservoirs = reservoir_manager(RESERVOIR_PARAM_INPUT_VECTOR_SIZE,
-                                       RESERVOIR_PARAM_RESERVOIR_SIZE,
-                                       RESERVOIR_PARAM_OUTPUT_VECTOR_SIZE,
-                                       RESERVOIR_PARAM_SPARSITY,
-                                       RESERVOIR_PARAM_SPECTRAL_RADIUS,
-                                       RESERVOIR_PARAM_LEAKAGE_RATE,
-                                       ESERVOIR_PARAM_REGRESSION_PARAM,
-                                       RESERVOIR_PARAM_WASHOUT);
 		_object.store(instance);
 		_task_id = task_id_is_work_queue;
 

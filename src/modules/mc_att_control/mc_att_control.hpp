@@ -82,7 +82,6 @@ class MulticopterAttitudeControl : public ModuleBase<MulticopterAttitudeControl>
 	public px4::WorkItem
 {
 public:
-    static reservoir_manager reservoirs;
 	MulticopterAttitudeControl();
 
 	virtual ~MulticopterAttitudeControl();
@@ -104,7 +103,7 @@ public:
 	bool init();
 
 private:
-    
+    static reservoir_manager reservoirs;
 	/**
 	 * initialize some vectors/matrices from parameters
 	 */
