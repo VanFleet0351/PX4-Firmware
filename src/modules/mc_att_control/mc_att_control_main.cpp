@@ -55,15 +55,7 @@
 using namespace matrix;
 
 MulticopterAttitudeControl::MulticopterAttitudeControl() :
-    _reservoirs(RESERVOIR_PARAM_INPUT_VECTOR_SIZE,
-                RESERVOIR_PARAM_RESERVOIR_SIZE,
-                RESERVOIR_PARAM_OUTPUT_VECTOR_SIZE,
-                RESERVOIR_PARAM_SPARSITY,
-                RESERVOIR_PARAM_SPECTRAL_RADIUS,
-                RESERVOIR_PARAM_LEAKAGE_RATE,
-                ESERVOIR_PARAM_REGRESSION_PARAM,
-                RESERVOIR_PARAM_WASHOUT),
-	ModuleParams(nullptr),
+    ModuleParams(nullptr),
 	WorkItem(MODULE_NAME, px4::wq_configurations::rate_ctrl),
 	_loop_perf(perf_alloc(PC_ELAPSED, "mc_att_control"))
 {
@@ -590,8 +582,15 @@ MulticopterAttitudeControl::Run()
 int MulticopterAttitudeControl::task_spawn(int argc, char *argv[])
 {
 	MulticopterAttitudeControl *instance = new MulticopterAttitudeControl();
-
 	if (instance) {
+        reservoirs = reservoir_manager(RESERVOIR_PARAM_INPUT_VECTOR_SIZE,
+                                       RESERVOIR_PARAM_RESERVOIR_SIZE,
+                                       RESERVOIR_PARAM_OUTPUT_VECTOR_SIZE,
+                                       RESERVOIR_PARAM_SPARSITY,
+                                       RESERVOIR_PARAM_SPECTRAL_RADIUS,
+                                       RESERVOIR_PARAM_LEAKAGE_RATE,
+                                       ESERVOIR_PARAM_REGRESSION_PARAM,
+                                       RESERVOIR_PARAM_WASHOUT);
 		_object.store(instance);
 		_task_id = task_id_is_work_queue;
 
@@ -638,20 +637,20 @@ int MulticopterAttitudeControl::custom_command(int argc, char *argv[])
             return 0;
         }
         else if(argc==1){
-            reservoir_manager::train_reservoirs();
+            MulticopterAttitudeControl::reservoirs.train_reservoirs();
             PX4_INFO_RAW("All Reservoirs have trained \n");
             return 0;
         }
     }
     else if (!strcmp(argv[0], "deleteRes")) {
         if(argc==2){
-            reservoir_manager::destroy_reservoir();
+            MulticopterAttitudeControl::reservoirs.destroy_reservoirs();
             PX4_INFO_RAW("Reservoir %s deleted \n",argv[1]);
             return 0;
         }
         else if (argc==1)
         {
-            reservoir_manager::destroy_reservoirs();
+            MulticopterAttitudeControl::reservoirs.destroy_reservoirs();
         }
         else{// print error
         }
@@ -668,7 +667,7 @@ int MulticopterAttitudeControl::custom_command(int argc, char *argv[])
         if(argc==2){
             PX4_INFO_RAW("Alpha is set to %s \n",argv[1]);
             char **ptr = nullptr; // dummy
-            reservoir_manager::update_regression_parameter(strtod(argv[1],ptr));
+            reservoirs.update_regression_parameter(strtod(argv[1], ptr));
             PX4_INFO_RAW("Alpha is set to %s \n",argv[1]);
             return 0;
         }

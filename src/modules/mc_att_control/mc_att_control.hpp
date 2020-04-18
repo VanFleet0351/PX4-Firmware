@@ -82,6 +82,7 @@ class MulticopterAttitudeControl : public ModuleBase<MulticopterAttitudeControl>
 	public px4::WorkItem
 {
 public:
+    static reservoir_manager reservoirs;
 	MulticopterAttitudeControl();
 
 	virtual ~MulticopterAttitudeControl();
@@ -144,8 +145,6 @@ private:
 	 * Attitude rates controller.
 	 */
 	void		control_attitude_rates(float dt, const matrix::Vector3f &rates);
-
-    reservoir_manager _reservoirs;
 	
 	AttitudeControl _attitude_control; ///< class for attitude control calculations
 	RateControl _rate_control; ///< class for rate control calculations

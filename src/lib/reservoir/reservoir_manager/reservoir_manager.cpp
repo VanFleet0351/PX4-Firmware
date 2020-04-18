@@ -1,6 +1,5 @@
 #include "reservoir_manager.hpp"
 
-std::list<reservoir_computer>reservoir_manager::reservoirs;
 
 reservoir_manager::reservoir_manager(uint8_t input_vector_size, uint16_t reservoir_size,
                                        uint8_t output_vector_size, double sparsity, double spectral_radius,
@@ -42,7 +41,7 @@ void reservoir_manager::destroy_reservoirs(){
 /**
  * Deletes one reservoir from the list
  */
-void reservoir_manager::destroy_reservoir(){
+void reservoir_manager::destroy_last_reservoir(){
 	reservoirs.pop_back();
 }
 
@@ -61,4 +60,22 @@ void reservoir_manager::show_status(){
 		std::cout <<"Reservoir " << i <<" :" << res.get_reservoir_status(); //PX4_INFO_RAW("")
 		i++;
 	}
+}
+
+/**
+ * Get prediction from the trained reservoirs.
+ * @param input_data
+ * @return Eigen vector of size output_dimension_
+ */
+Eigen::VectorXd reservoir_manager::predict(const Eigen::RowVectorXd &input_data)
+{
+    Eigen::VectorXd result = Eigen::VectorXd::Zero(output_dimension_);
+    for(reservoir_computer &res: reservoirs)
+    {
+        if(res.get_reservoir_status() == TRAINED)
+        {
+            result += res.predict(input_data);
+        }
+    }
+    return result;
 }
