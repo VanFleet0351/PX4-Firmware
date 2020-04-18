@@ -13,7 +13,6 @@ class reservoir_manager{
                                 uint8_t output_vector_size, double sparsity, double spectral_radius,
                                 double leakage_rate, double reg_param, double washout);
 
-	std::list<reservoir_computer> reservoirs;
 	void create_reservoir();
 
 	void destroy_reservoirs();
@@ -22,13 +21,13 @@ class reservoir_manager{
 	void train_reservoirs();
 	void show_status();
 
-
-
     static void update_regression_parameter(double alpha);
 
 
 	private:
+    std::list<reservoir_computer> reservoirs_;
 	//hyperparameters
+
 	double sparsity_; // k in Canaday's paper usually around 10%
 	double spectral_radius_; // rho. 1.0 is a good starting point per thesis
 	double leakage_rate_; //gamma for Wendson, a for Canaday. I've seen this set to 0.3, but canaday replaced it with h/c. thesis page 20 & 21

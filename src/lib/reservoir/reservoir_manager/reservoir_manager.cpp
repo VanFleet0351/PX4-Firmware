@@ -13,7 +13,7 @@ reservoir_manager::reservoir_manager(uint8_t input_vector_size, uint16_t reservo
  * Creates a reservoir and adds it to the list
  */
 void reservoir_manager::create_reservoir(){
-	reservoirs.emplace_back(
+	reservoirs_.emplace_back(
 		input_dimension_,  reservoir_dimension_, output_dimension_,
 		sparsity_, spectral_radius_, leakage_rate_, regression_parameter_, washout_);
 
@@ -23,7 +23,7 @@ void reservoir_manager::create_reservoir(){
  * Trains reservoirs in the list one at a time
  */
 void reservoir_manager::train_reservoirs(){
-    for(reservoir_computer &res: reservoirs){
+    for(reservoir_computer &res: reservoirs_){
 		if(res.get_reservoir_status() == NOT_TRAINED){
             //res.train();
 		}
@@ -35,14 +35,14 @@ void reservoir_manager::train_reservoirs(){
  *
  */
 void reservoir_manager::destroy_reservoirs(){
-	reservoirs.clear();
+	reservoirs_.clear();
 }
 
 /**
  * Deletes one reservoir from the list
  */
 void reservoir_manager::destroy_last_reservoir(){
-	reservoirs.pop_back();
+	reservoirs_.pop_back();
 }
 
 void reservoir_manager::update_regression_parameter(double alpha) {
@@ -56,7 +56,7 @@ void reservoir_manager::update_regression_parameter(double alpha) {
  */
 void reservoir_manager::show_status(){
 	int i=1;
-    for(reservoir_computer &res: reservoirs){
+    for(reservoir_computer &res: reservoirs_){
 		std::cout <<"Reservoir " << i <<" :" << res.get_reservoir_status(); //PX4_INFO_RAW("")
 		i++;
 	}
@@ -70,7 +70,7 @@ void reservoir_manager::show_status(){
 Eigen::VectorXd reservoir_manager::predict(const Eigen::RowVectorXd &input_data)
 {
     Eigen::VectorXd result = Eigen::VectorXd::Zero(output_dimension_);
-    for(reservoir_computer &res: reservoirs)
+    for(reservoir_computer &res: reservoirs_)
     {
         if(res.get_reservoir_status() == TRAINED)
         {

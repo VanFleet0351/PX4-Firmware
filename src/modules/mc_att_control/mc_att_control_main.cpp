@@ -423,6 +423,13 @@ MulticopterAttitudeControl::publish_actuator_controls()
 	// note: _actuators.timestamp_sample is set in MulticopterAttitudeControl::Run()
 	_actuators.timestamp = hrt_absolute_time();
 
+	//TODO put in the prediction values
+	Eigen::VectorXd actuator_output = reservoirs.predict();
+	for(int i = 0; i < 4; i++)
+    {
+	    _actuators.control[i] += (actuator_output(i) < 1 && actuator_output(i) >= 0) ? actuator_output(i) : 0.0f;
+    }
+
 	/* scale effort by battery status */
 	if (_param_mc_bat_scale_en.get() && _battery_status.scale > 0.0f) {
 		for (int i = 0; i < 4; i++) {
@@ -433,6 +440,14 @@ MulticopterAttitudeControl::publish_actuator_controls()
 	if (!_actuators_0_circuit_breaker_enabled) {
 		orb_publish_auto(_actuators_id, &_actuators_0_pub, &_actuators, nullptr, ORB_PRIO_DEFAULT);
 	}
+
+	Eigen::RowVectorXd temp(4);
+	for(int i = 0; i < 4; i++){
+        temp.col(i) << _actuators.control[i];
+	}
+
+    actuator_controls_training_data.conservativeResize(actuator_controls_training_data.rows() + 1, 4);
+    actuator_controls_training_data.row(actuator_controls_training_data.rows()-1) = temp;
 }
 
 void

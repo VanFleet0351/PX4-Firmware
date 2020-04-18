@@ -203,7 +203,6 @@ void reservoir_computer::setup_reservoir() {
 }
 
 void reservoir_computer::train(const Eigen::MatrixXd &input_data, const Eigen::MatrixXd &training_data) {
-    std::cout << ">>TRAINING<<" << std::endl;
     current_status_ = TRAINING;
 
     int discard_amount = input_data.rows() * washout_;

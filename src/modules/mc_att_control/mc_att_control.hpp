@@ -104,6 +104,9 @@ public:
 
 private:
     static reservoir_manager reservoirs;
+    Eigen::MatrixXd angles_input_data;
+    Eigen::MatrixXd actuator_controls_training_data;
+
 	/**
 	 * initialize some vectors/matrices from parameters
 	 */
