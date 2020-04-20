@@ -424,10 +424,11 @@ MulticopterAttitudeControl::publish_actuator_controls()
 	_actuators.timestamp = hrt_absolute_time();
 
 	//TODO put in the prediction values
-	Eigen::VectorXd actuator_output = reservoirs.predict();
+	Eigen::RowVectorXd angle_input(6);
+	Eigen::VectorXd actuator_output = reservoirs.predict(angle_input);
 	for(int i = 0; i < 4; i++)
     {
-	    _actuators.control[i] += (actuator_output(i) < 1 && actuator_output(i) >= 0) ? actuator_output(i) : 0.0f;
+	    _actuators.control[i] += ((actuator_output(i) < 1 && actuator_output(i) >= 0) ? (float)actuator_output(i) : 0.0f);
     }
 
 	/* scale effort by battery status */
@@ -673,8 +674,8 @@ int MulticopterAttitudeControl::custom_command(int argc, char *argv[])
         }
     }
     else if (!strcmp(argv[0], "countRes")) {
-        int count=0;
-        PX4_INFO_RAW("The Reservoir count is %i \n",count);
+        size_t count=reservoirs.get_reservoir_count();
+        PX4_INFO_RAW("The Reservoir count is %zu \n",count);
         return 0;
     }
     else if (!strcmp(argv[0], "statusRes")) {

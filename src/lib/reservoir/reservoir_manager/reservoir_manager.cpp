@@ -16,7 +16,6 @@ void reservoir_manager::create_reservoir(){
 	reservoirs_.emplace_back(
 		input_dimension_,  reservoir_dimension_, output_dimension_,
 		sparsity_, spectral_radius_, leakage_rate_, regression_parameter_, washout_);
-
 }
 
 /**
@@ -49,6 +48,10 @@ void reservoir_manager::update_regression_parameter(double alpha) {
     // res.update_regression_parameter(alpha);
 }
 
+size_t reservoir_manager::get_reservoir_count()
+{
+    return reservoirs_.size();
+}
 
 /**
  *

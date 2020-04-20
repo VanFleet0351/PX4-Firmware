@@ -20,6 +20,7 @@ class reservoir_manager{
     Eigen::VectorXd predict(const Eigen::RowVectorXd &input_data);
 	void train_reservoirs();
 	void show_status();
+    size_t get_reservoir_count();
 
     static void update_regression_parameter(double alpha);
 
