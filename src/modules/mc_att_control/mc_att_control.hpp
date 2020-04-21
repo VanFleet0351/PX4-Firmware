@@ -73,6 +73,8 @@
 #define ESERVOIR_PARAM_REGRESSION_PARAM 0.01
 #define RESERVOIR_PARAM_WASHOUT 0.05
 
+#define DEFAULT_DATAPOINTS_TO_COLLECT 1000
+
 /**
  * Multicopter attitude control app start / stop handling function
  */
@@ -104,6 +106,8 @@ public:
 
 private:
     static reservoir_manager reservoirs;
+    static int datapoints_to_collect, datapoints_collected;
+    static bool training;
     Eigen::MatrixXd angles_input_data;
     Eigen::MatrixXd actuator_controls_training_data;
 

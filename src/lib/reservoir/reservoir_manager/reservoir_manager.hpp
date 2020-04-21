@@ -19,8 +19,8 @@ class reservoir_manager{
                                 double leakage_rate, double reg_param, double washout);
 
 
-	void add_reservoir();
-    void add_reservoir(uint16_t reservoir_dimension);
+	int add_reservoir();
+    int add_reservoir(uint16_t reservoir_dimension);
 
 	void destroy_all_reservoirs();
 	void destroy_last_reservoir();

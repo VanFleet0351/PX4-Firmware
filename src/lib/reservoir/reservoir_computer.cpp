@@ -78,7 +78,6 @@ void reservoir_computer::setup_reservoir() {
 }
 
 void reservoir_computer::train(const Eigen::MatrixXd &input_data, const Eigen::MatrixXd &training_data) {
-    std::cout << ">>TRAINING<<" << std::endl;
     current_status_ = TRAINING;
 
     int discard_amount = input_data.rows() * washout_;
@@ -97,7 +96,6 @@ void reservoir_computer::train(const Eigen::MatrixXd &input_data, const Eigen::M
     update_weights(training_data.bottomRows(training_data.rows() - discard_amount));
 
     current_status_ = TRAINED;
-    std::cout << ">>TRAINED<<" << std::endl;
 }
 
 /**
@@ -277,7 +275,7 @@ double reservoir_computer::get_washout() {
  * Gets the current status of the reservoir
  * @return The current state of the reservoir
  */
-reservoir_status_t reservoir_computer::get_reservoir_status() {
+reservoir_status_t reservoir_computer::get_status() {
     return current_status_;
 }
 

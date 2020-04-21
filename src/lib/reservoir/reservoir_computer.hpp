@@ -51,7 +51,7 @@ public:
 
     void print_data(const Eigen::MatrixXd& input_data);
 
-    reservoir_status_t get_reservoir_status();
+    reservoir_status_t get_status();
 
     Eigen::VectorXd predict(const Eigen::RowVectorXd &input);
     void train(const Eigen::MatrixXd &input_data, const Eigen::MatrixXd &training_data);

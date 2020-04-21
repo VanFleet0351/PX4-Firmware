@@ -13,18 +13,22 @@ reservoir_manager::reservoir_manager(uint8_t input_vector_size, uint16_t reservo
 /**
  * Creates a reservoir of default sizes and add it to the list
  */
-void reservoir_manager::add_reservoir() {
-    add_reservoir(reservoir_dimension_);
+int reservoir_manager::add_reservoir() {
+    return add_reservoir(reservoir_dimension_);
 }
 
 /**
  * Create reservoir of dimneions reservoir_dimension
  * @param reservoir_dimension
  */
-void reservoir_manager::add_reservoir(uint16_t reservoir_dimension) {
-    reservoirs_.emplace_back(
-            input_dimension_, reservoir_dimension, output_dimension_,
-            sparsity_, spectral_radius_, leakage_rate_, regression_parameter_, washout_);
+int reservoir_manager::add_reservoir(uint16_t reservoir_dimension) {
+    int success = 0;
+    if (reservoirs_.back().get_status() == TRAINED) {
+        reservoirs_.emplace_back(
+                input_dimension_, reservoir_dimension, output_dimension_,
+                sparsity_, spectral_radius_, leakage_rate_, regression_parameter_, washout_);
+    } else { success = -1; }
+    return success;
 }
 
 /**
@@ -81,7 +85,7 @@ void reservoir_manager::print_reservoirs_info() {
     int i = 1;
     std::cout << "Res\tDim\tStatus\tAlpha\tLeakage\tWashout" << std::endl;
     for (reservoir_computer &res: reservoirs_) {
-        std::cout << i << "\t" << res.get_reservoir_dimension() << "\t" << res.get_reservoir_status() << "\t"
+        std::cout << i << "\t" << res.get_reservoir_dimension() << "\t" << res.get_status() << "\t"
                   << res.get_regression_parameter() << "\t" << res.get_leakage_rate() << "\t" << res.get_washout()
                   << std::endl;
         i++;
@@ -97,7 +101,7 @@ void reservoir_manager::print_reservoirs_info() {
 Eigen::VectorXd reservoir_manager::predict(const Eigen::RowVectorXd &input_data) {
     Eigen::VectorXd result = Eigen::VectorXd::Zero(output_dimension_);
     for (reservoir_computer &res: reservoirs_) {
-        if (res.get_reservoir_status() == TRAINED) {
+        if (res.get_status() == TRAINED) {
             result += res.predict(input_data);
         }
     }
