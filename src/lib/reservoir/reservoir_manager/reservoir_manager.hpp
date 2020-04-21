@@ -2,10 +2,15 @@
 #ifndef PX4_RESERVOIR_MANAGER_HPP
 #define PX4_RESERVOIR_MANAGER_HPP
 
+#ifndef MODULE_NAME
+#define MODULE_NAME "reservoir_manager"
+#endif
+
 #include "reservoir/reservoir_computer.hpp"
 #include <iostream>
 #include <list>
 #include <iterator>
+#include <platforms/px4_log.h>
 
 class reservoir_manager{
 	public:
@@ -13,14 +18,16 @@ class reservoir_manager{
                                 uint8_t output_vector_size, double sparsity, double spectral_radius,
                                 double leakage_rate, double reg_param, double washout);
 
-	void create_reservoir();
+
+	void add_reservoir();
+    void add_reservoir(uint16_t reservoir_dimension);
 
 	void destroy_reservoirs();
 	void destroy_last_reservoir();
     Eigen::VectorXd predict(const Eigen::RowVectorXd &input_data);
-	void train_reservoirs();
+	void train_last_reservoir(const Eigen::MatrixXd &input_data, const Eigen::MatrixXd &training_data);
 	void show_status();
-    size_t get_reservoir_count();
+    void get_reservoirs_info();
 
     static void update_regression_parameter(double alpha);
 

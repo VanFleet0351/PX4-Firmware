@@ -10,7 +10,6 @@
 #include <fstream>
 #include <string>
 #include <iostream>
-//#include <drivers/drv_hrt.h>
 #include <Eigen/Core>
 #include <Eigen/Sparse>
 #include <Eigen/Eigenvalues>
@@ -24,6 +23,8 @@ enum reservoir_status_t {
     NOT_TRAINED, TRAINING, TRAINED
 };
 
+//const char* reservoir_status_strings[] = { "NOT TRAINED", "TRAINING", "TRAINED" };
+
 class reservoir_computer {
 public:
     explicit reservoir_computer(uint8_t input_vector_size, uint16_t reservoir_size,
@@ -34,9 +35,13 @@ public:
 
     int update_regression_parameter(double);
 
+    int update_washout(double);
+
     double get_leakage_rate();
 
     double get_regression_parameter();
+
+    double get_washout();
 
     uint8_t get_input_dimension();
 

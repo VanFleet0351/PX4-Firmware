@@ -234,6 +234,21 @@ int reservoir_computer::update_regression_parameter(double param) {
 }
 
 /**
+ * Update the ridge regression alpha parameter. If the reservoir is currently trained or training it will not update.
+ * @param param The new alpha parameter
+ * @return 0 for success, -1 for error
+ */
+int reservoir_computer::update_washout(double washout) {
+    int success = RETURN_CODE_DEFAULT;
+    if (current_status_ == NOT_TRAINED) {
+        regression_parameter_ = washout;
+    } else {
+        success = RETURN_CODE_ERROR;
+    }
+    return success;
+}
+
+/**
  * Returns the gamma or leakage rate of the reservoir nodes
  * @return
  */
@@ -250,6 +265,15 @@ double reservoir_computer::get_regression_parameter() {
 }
 
 /**
+ * Returns the washout parameter or percentage of reservoir states we throw away
+ * @return
+ */
+double reservoir_computer::get_washout() {
+    return washout_;
+}
+
+
+/**
  * Gets the current status of the reservoir
  * @return The current state of the reservoir
  */
@@ -257,14 +281,26 @@ reservoir_status_t reservoir_computer::get_reservoir_status() {
     return current_status_;
 }
 
+/**
+ * Gets the input size of the reservoir
+ * @return
+ */
 uint8_t reservoir_computer::get_input_dimension() {
     return input_dimension_;
 }
 
+/**
+ * Gets the size of the reservoir
+ * @return
+ */
 uint16_t reservoir_computer::get_reservoir_dimension() {
     return reservoir_dimension_;
 }
 
+/**
+ * Gets the output size of the reservoir
+ * @return
+ */
 uint8_t reservoir_computer::get_output_dimension() {
     return output_dimension_;
 }
