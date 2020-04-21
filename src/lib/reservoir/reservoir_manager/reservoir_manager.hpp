@@ -22,20 +22,23 @@ class reservoir_manager{
 	void add_reservoir();
     void add_reservoir(uint16_t reservoir_dimension);
 
-	void destroy_reservoirs();
+	void destroy_all_reservoirs();
 	void destroy_last_reservoir();
     Eigen::VectorXd predict(const Eigen::RowVectorXd &input_data);
 	void train_last_reservoir(const Eigen::MatrixXd &input_data, const Eigen::MatrixXd &training_data);
-	void show_status();
-    void get_reservoirs_info();
+    void print_reservoirs_info();
 
-    static void update_regression_parameter(double alpha);
+    void update_leakage_rate(double);
+    void update_regression_parameter(double alpha);
+    void update_washout(double washout);
+
 
 
 	private:
-    std::list<reservoir_computer> reservoirs_;
-	//hyperparameters
 
+    std::list<reservoir_computer> reservoirs_;
+
+    //hyperparameters
 	double sparsity_; // k in Canaday's paper usually around 10%
 	double spectral_radius_; // rho. 1.0 is a good starting point per thesis
 	double leakage_rate_; //gamma for Wendson, a for Canaday. I've seen this set to 0.3, but canaday replaced it with h/c. thesis page 20 & 21

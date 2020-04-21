@@ -38,7 +38,7 @@ void reservoir_manager::train_last_reservoir(const Eigen::MatrixXd &input_data, 
  * Destroys all the reservoirs in the list. clears the list
  *
  */
-void reservoir_manager::destroy_reservoirs() {
+void reservoir_manager::destroy_all_reservoirs() {
     reservoirs_.clear();
 }
 
@@ -49,11 +49,35 @@ void reservoir_manager::destroy_last_reservoir() {
     reservoirs_.pop_back();
 }
 
-void reservoir_manager::update_regression_parameter(double alpha) {
-    // res.update_regression_parameter(alpha);
+/**
+ * Updates the leakage parameter for the next added reservoir
+ * @param leakage
+ */
+void reservoir_manager::update_leakage_rate(double leakage) {
+    leakage_rate_ = leakage;
 }
 
-void reservoir_manager::get_reservoirs_info() {
+/**
+ * Updates the regression parameter for the next added reservoid
+ * @param alpha
+ */
+void reservoir_manager::update_regression_parameter(double alpha) {
+    regression_parameter_ = alpha;
+}
+
+
+/**
+ * Updates the washout parameter for the next added reservoir
+ * @param washout
+ */
+void reservoir_manager::update_washout(double washout) {
+    washout_ = washout;
+}
+
+/**
+ * Prints the info for all the reservoirs in the maanger
+ */
+void reservoir_manager::print_reservoirs_info() {
     int i = 1;
     std::cout << "Res\tDim\tStatus\tAlpha\tLeakage\tWashout" << std::endl;
     for (reservoir_computer &res: reservoirs_) {

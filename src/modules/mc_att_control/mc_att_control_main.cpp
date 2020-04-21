@@ -660,9 +660,41 @@ int MulticopterAttitudeControl::custom_command(int argc, char *argv[])
                     }
                     return 0;
                 }
+                else if (!strcmp(argv[1], "setleakage")) {
+                    if(argc > 2)
+                    {
+                        double leakage = std::atof(argv[2]);
+                        reservoirs.update_leakage_rate(leakage);
+                        PX4_INFO("Set reservoir leakage value %f", leakage);
+                        return 0;
+                    }
+                }
+                else if (!strcmp(argv[1], "setregression")) {
+                    if(argc > 2)
+                    {
+                        double regression = std::atof(argv[2]);
+                        reservoirs.update_regression_parameter(regression);
+                        PX4_INFO("Set reservoir regression value %f", regression);
+                        return 0;
+                    }
+                }
+                else if (!strcmp(argv[1], "setwashout")) {
+                    if(argc > 2)
+                    {
+                        double washout = std::atof(argv[2]);
+                        reservoirs.update_washout(washout);
+                        PX4_INFO("Set reservoir washout value %f", washout);
+                        return 0;
+                    }
+                }
+                else if (!strcmp(argv[1], "clear")) {
+                    reservoirs.destroy_all_reservoirs();
+                    PX4_INFO("Removed all reservoirs");
+                    return 0;
+                }
                 else if (!strcmp(argv[1], "remove")) {
                     reservoirs.destroy_last_reservoir();
-                    PX4_INFO("Destroyed reservoir");
+                    PX4_INFO("Removed last reservoir");
                     return 0;
                 }
                 else if (!strcmp(argv[1], "train")) {
@@ -674,7 +706,7 @@ int MulticopterAttitudeControl::custom_command(int argc, char *argv[])
                     return 0;
                 }
                 else if (!strcmp(argv[1], "info")) {
-                    reservoirs.get_reservoirs_info();
+                    reservoirs.print_reservoirs_info();
                     return 0;
                 }
             }
@@ -715,8 +747,12 @@ To reduce control latency, the module directly polls on the gyro topic published
     PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
     PRINT_MODULE_USAGE_COMMAND_DESCR("reservoir", "Commands for the reservoir computer manager attached to the attitude controller.");
     PRINT_MODULE_USAGE_ARG("add [n]", "Add a new reservoir to the system. If specified, adds a reservoir of n nodes", false);
+    PRINT_MODULE_USAGE_ARG("clear", "Remove all the managed reservoirs", false);
     PRINT_MODULE_USAGE_ARG("remove", "Removes the last reservoir", false);
     PRINT_MODULE_USAGE_ARG("info", "Print information about all the managed reservoirs", false);
+    PRINT_MODULE_USAGE_ARG("setleakage", "Set the leakage rate for future reservoirs", false);
+    PRINT_MODULE_USAGE_ARG("setregression", "Set the regression parameter for future reservoirs", false);
+    PRINT_MODULE_USAGE_ARG("setwashout", "Set the washout for future reservoirs", false);
 
 	return 0;
 }
