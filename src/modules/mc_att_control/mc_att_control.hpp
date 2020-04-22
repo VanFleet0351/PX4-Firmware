@@ -106,6 +106,7 @@ public:
 
 private:
     static reservoir_manager reservoirs;
+    static double noise_max;
     static int datapoints_to_collect, datapoints_collected;
     static bool training;
     Eigen::MatrixXd angles_input_data;

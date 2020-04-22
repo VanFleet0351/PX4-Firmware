@@ -57,7 +57,7 @@ using namespace matrix;
 bool MulticopterAttitudeControl::training = false;
 int MulticopterAttitudeControl::datapoints_to_collect = 0;
 int MulticopterAttitudeControl::datapoints_collected = 0;
-
+double MulticopterAttitudeControl::noise_max = 0;
 
 reservoir_manager MulticopterAttitudeControl::reservoirs = reservoir_manager(RESERVOIR_PARAM_INPUT_VECTOR_SIZE,
                                                                              RESERVOIR_PARAM_RESERVOIR_SIZE,
@@ -417,12 +417,52 @@ MulticopterAttitudeControl::publish_actuator_controls() {
     // note: _actuators.timestamp_sample is set in MulticopterAttitudeControl::Run()
     _actuators.timestamp = hrt_absolute_time();
 
+
     //TODO put in the prediction values
     Eigen::RowVectorXd angle_input(6);
     Eigen::VectorXd actuator_output = reservoirs.predict(angle_input);
+    /*
     for (int i = 0; i < 4; i++) {
         _actuators.control[i] += ((actuator_output(i) < 1 && actuator_output(i) >= 0) ? (float) actuator_output(i)
                                                                                       : 0.0f);
+    }*/
+
+    if(training)
+    {
+        Eigen::RowVectorXd actuator_control_row(4);
+        for(int i = 0; i < 4; i++)
+        {
+            float noise = noise_max / 2.0 - (static_cast <double> (rand()) / static_cast <double> (RAND_MAX) * noise_max);
+            _actuators.control[i] += noise;
+            actuator_control_row.col(i) << noise;
+        }
+
+        actuator_controls_training_data.conservativeResize(actuator_controls_training_data.rows() + 1, 4);
+        if(datapoints_collected == 0)
+        {
+            //TODO puts the actuator controls in
+            //actuator_controls_training_data.conservativeResize(actuator_controls_training_data.rows() + 1, 4);
+            //actuator_controls_training_data.row(actuator_controls_training_data.rows() - 1) = actuator_control_row;
+            datapoints_collected++;
+        }
+        else if(datapoints_collected < datapoints_to_collect - 1)
+        {
+            //actuator_controls_training_data.conservativeResize(actuator_controls_training_data.rows() + 1, 4);
+            //actuator_controls_training_data.row(actuator_controls_training_data.rows() - 1) = actuator_control_row;
+            //TODO put both training and input data in
+            datapoints_collected++;
+        } else{
+            PX4_INFO("Finished training");
+            //TODO put the input data in
+            angles_input_data.conservativeResize(actuator_controls_training_data.rows() + 1, 4);
+
+            training = false;
+            datapoints_to_collect = 0;
+            datapoints_collected = 0;
+            //reservoirs.train_last_reservoir(angles_input_data, actuator_controls_training_data);
+            //actuator_controls_training_data = Eigen::MatrixXd(0, 4);
+            //angles_input_data = Eigen::MatrixXd(0, 4);
+        }
     }
 
     /* scale effort by battery status */
@@ -435,14 +475,6 @@ MulticopterAttitudeControl::publish_actuator_controls() {
     if (!_actuators_0_circuit_breaker_enabled) {
         orb_publish_auto(_actuators_id, &_actuators_0_pub, &_actuators, nullptr, ORB_PRIO_DEFAULT);
     }
-
-    Eigen::RowVectorXd temp(4);
-    for (int i = 0; i < 4; i++) {
-        temp.col(i) << _actuators.control[i];
-    }
-
-    actuator_controls_training_data.conservativeResize(actuator_controls_training_data.rows() + 1, 4);
-    actuator_controls_training_data.row(actuator_controls_training_data.rows() - 1) = temp;
 }
 
 void
@@ -678,6 +710,7 @@ int MulticopterAttitudeControl::custom_command(int argc, char *argv[]) {
                         return 0;
                     }
                 } else if (!strcmp(argv[1], "clear")) {
+                    training = false;
                     reservoirs.destroy_all_reservoirs();
                     PX4_INFO("Removed all reservoirs");
                     return 0;
@@ -691,12 +724,14 @@ int MulticopterAttitudeControl::custom_command(int argc, char *argv[]) {
                     } else {
                         training = true;
                         datapoints_collected = 0;
-                        if (argc > 2) {
+                        if (argc == 4) {
                             datapoints_to_collect = std::atoi(argv[2]);
-                        } else {
-                            datapoints_to_collect = DEFAULT_DATAPOINTS_TO_COLLECT;
+                            noise_max = std::atof(argv[3]);
+                            PX4_INFO("Will collect %d points of training data for this reservoir", datapoints_to_collect);
                         }
-                        PX4_INFO("Will collect %d points of training data for this reservoir", datapoints_to_collect);
+                        else{
+                            return print_usage("Invalid number of arguments!");
+                        }
                     }
                     return 0;
                 } else if (!strcmp(argv[1], "info")) {
@@ -745,6 +780,7 @@ To reduce control latency, the module directly polls on the gyro topic published
     PRINT_MODULE_USAGE_ARG("clear", "Remove all the managed reservoirs", false);
     PRINT_MODULE_USAGE_ARG("remove", "Removes the last reservoir", false);
     PRINT_MODULE_USAGE_ARG("info", "Print information about all the managed reservoirs", false);
+    PRINT_MODULE_USAGE_ARG("train datapoints noise_max", "Trains the last untrained reservoir. Requires an int representing the max number of datapoints and a float representing the magnitude of the noise", false);
     PRINT_MODULE_USAGE_ARG("setleakage", "Set the leakage rate for future reservoirs", false);
     PRINT_MODULE_USAGE_ARG("setregression", "Set the regression parameter for future reservoirs", false);
     PRINT_MODULE_USAGE_ARG("setwashout", "Set the washout for future reservoirs", false);
@@ -753,5 +789,6 @@ To reduce control latency, the module directly polls on the gyro topic published
 }
 
 int mc_att_control_main(int argc, char *argv[]) {
+    srand(time(NULL));
     return MulticopterAttitudeControl::main(argc, argv);
 }

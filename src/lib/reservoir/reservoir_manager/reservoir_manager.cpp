@@ -23,11 +23,18 @@ int reservoir_manager::add_reservoir() {
  */
 int reservoir_manager::add_reservoir(uint16_t reservoir_dimension) {
     int success = 0;
-    if (reservoirs_.back().get_status() == TRAINED) {
+    if (reservoirs_.size() > 0)
+    {
+        if (reservoirs_.back().get_status() == TRAINED) {
+            reservoirs_.emplace_back(
+                    input_dimension_, reservoir_dimension, output_dimension_,
+                    sparsity_, spectral_radius_, leakage_rate_, regression_parameter_, washout_);
+        } else { success = -1; }
+    } else{
         reservoirs_.emplace_back(
                 input_dimension_, reservoir_dimension, output_dimension_,
                 sparsity_, spectral_radius_, leakage_rate_, regression_parameter_, washout_);
-    } else { success = -1; }
+    }
     return success;
 }
 
