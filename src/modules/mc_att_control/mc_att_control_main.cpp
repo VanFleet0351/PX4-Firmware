@@ -419,22 +419,34 @@ MulticopterAttitudeControl::publish_actuator_controls() {
     _actuators.timestamp = hrt_absolute_time();
 
 
-    /*
-    for (int i = 0; i < 4; i++) {
-        _actuators.control[i] += ((actuator_output(i) < 1 && actuator_output(i) >= 0) ? (float) actuator_output(i)
+    Eigen::RowVectorXd angle_input(RESERVOIR_PARAM_INPUT_VECTOR_SIZE);
+    for(int i = 0; i < RESERVOIR_PARAM_INPUT_VECTOR_SIZE; i++)
+    {
+        angle_input(i) = _v_att.q[i] - _v_att_sp.q_d[i];
+    }
+
+    Eigen::RowVectorXd actuator_output = attitude_reservoir_manager.predict(angle_input);
+    for (int i = 0; i < RESERVOIR_PARAM_OUTPUT_VECTOR_SIZE; i++) {
+        _actuators.control[i] += ((actuator_output(i) < 1 && actuator_output(i) > -1) ? (float) actuator_output(i)
                                                                                       : 0.0f);
-    }*/
+    }
 
     if (training) {
-        float noise[4];
-        for (int i = 0; i < 4; i++) {
+        float noise[RESERVOIR_PARAM_OUTPUT_VECTOR_SIZE];
+        for (int i = 0; i < RESERVOIR_PARAM_OUTPUT_VECTOR_SIZE; i++) {
             noise[i] = noise_max / 2.0 - (static_cast <double> (rand()) / static_cast <double> (RAND_MAX) * noise_max);
             _actuators.control[i] += noise[i];
         }
 
+        float angles[RESERVOIR_PARAM_INPUT_VECTOR_SIZE];
+        for(int i = 0; i < RESERVOIR_PARAM_INPUT_VECTOR_SIZE; i++)
+        {
+            angles[i] = _v_att.q[i] - _v_att_sp.q_d[i];
+        }
+
         if (datapoints_collected == 0) {
-            angles_input_data = Eigen::MatrixXd(datapoints_to_collect, 4);
-            actuator_controls_training_data = Eigen::MatrixXd(datapoints_to_collect, 4);
+            angles_input_data = Eigen::MatrixXd(datapoints_to_collect, RESERVOIR_PARAM_INPUT_VECTOR_SIZE);
+            actuator_controls_training_data = Eigen::MatrixXd(datapoints_to_collect, RESERVOIR_PARAM_OUTPUT_VECTOR_SIZE);
 
             for (int i = 0; i < 4; i++) {
                 actuator_controls_training_data(datapoints_collected, i) = noise[i];
@@ -443,21 +455,20 @@ MulticopterAttitudeControl::publish_actuator_controls() {
         } else if (datapoints_collected < datapoints_to_collect - 1) {
             for (int i = 0; i < 4; i++) {
                 actuator_controls_training_data(datapoints_collected, i) = noise[i];
-                angles_input_data(datapoints_collected - 1, i) = 0;
+                angles_input_data(datapoints_collected - 1, i) = angles[i];
             }
 
             datapoints_collected++;
         } else {
             PX4_INFO("Finished collecting datapoints. Starting to train...");
             for (int i = 0; i < 4; i++) {
-                angles_input_data(datapoints_collected - 1, i) = 0;
+                angles_input_data(datapoints_collected - 1, i) = angles[i];
             }
 
             training = false;
             datapoints_to_collect = 0;
             datapoints_collected = 0;
-            //TODO we need to see about replacing the
-            //attitude_reservoir_manager.train_last_reservoir(angles_input_data, actuator_controls_training_data);
+            attitude_reservoir_manager.train_last_reservoir(angles_input_data, actuator_controls_training_data);
             PX4_INFO("Finished training");
         }
     }
