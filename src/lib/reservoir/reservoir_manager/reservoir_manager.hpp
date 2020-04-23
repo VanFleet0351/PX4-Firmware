@@ -31,7 +31,7 @@ class reservoir_manager{
 
 	private:
 
-    std::vector<reservoir_computer> reservoirs_;
+    std::list<reservoir_computer> reservoirs_;
 
     //hyperparameters
 	double sparsity_; // k in Canaday's paper usually around 10%
