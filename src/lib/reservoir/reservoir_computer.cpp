@@ -1,6 +1,5 @@
 #include "reservoir_computer.hpp"
 
-
 /**
  * Calculates hyperbolic tangent for a double. We define this here because std::tanh is a template
  * function so passing a function pointer for Eigen's unaryExpr requires a function of specific type
@@ -11,8 +10,13 @@ inline double hypertan(double x) {
     return std::tanh(x);
 }
 
-inline double absolute_double(double x)
-{
+/**
+ * Calculate the absoulute value of a double. We define this here because std::fabs is a template
+ * function so passing a function pointer for Eigen's unaryExpr requires a function of specific type
+ * @param x
+ * @return absolute value of x
+ */
+inline double absolute_double(double x) {
     return std::fabs(x);
 }
 
@@ -25,27 +29,29 @@ inline double absolute_double(double x)
  * @param spectral_radius
  * @param leakage_rate Leakage rate of the nodes
  * @param reg_param Alpha parameter used to calculate output weights
+ * @param washout the percentage of reservoir states to dump so we avoid garbage data
  */
 reservoir_computer::reservoir_computer(uint8_t input_vector_size, uint16_t reservoir_size,
                                        uint8_t output_vector_size, double sparsity, double spectral_radius,
                                        double leakage_rate, double reg_param, double washout)
         : sparsity_(sparsity), spectral_radius_(spectral_radius), leakage_rate_(leakage_rate),
-          regression_parameter_(reg_param), washout_(washout),  input_dimension_(input_vector_size),
+          regression_parameter_(reg_param), washout_(washout), input_dimension_(input_vector_size),
           reservoir_dimension_(reservoir_size), output_dimension_(output_vector_size), current_status_(NOT_TRAINED) {
     //input matrix reservoir_size x reservoir_size
-    W_in = Eigen::MatrixXd::Random(reservoir_dimension_, input_dimension_);
+    W_in = Eigen::MatrixXd::Random(input_dimension_, reservoir_dimension_);
     //nodes in the reservoir itself
     //Dr.Guathier suggested trying a linear topology
     W = Eigen::SparseMatrix<double>(reservoir_dimension_, reservoir_dimension_);
     //output weights
-    W_out = Eigen::MatrixXd(output_dimension_, reservoir_dimension_);
+    W_out = Eigen::MatrixXd(reservoir_dimension_, output_dimension_);
     setup_reservoir();
     reservoir_evolution_ = Eigen::MatrixXd::Constant(1, reservoir_dimension_, 0);
-    bias_ = Eigen::VectorXd::Random(reservoir_dimension_);
+    bias_ = Eigen::RowVectorXd::Random(reservoir_dimension_);
 }
 
-/*
- * Initialization
+/**
+ * Initialize the reservoir. Generates the sparse matrix of size reservoir_dimension_ * reservoir_dimension_
+ * This also normalizes the reservoir matrix based on the eigen value
  */
 void reservoir_computer::setup_reservoir() {
     std::random_device rdI;
@@ -77,25 +83,40 @@ void reservoir_computer::setup_reservoir() {
     W = spectral_radius_ / max_eigen_value * W;
 }
 
-void reservoir_computer::train(const Eigen::MatrixXd &input_data, const Eigen::MatrixXd &training_data) {
-    current_status_ = TRAINING;
+/**
+ * Train the reservoir
+ * @param input_data matrix representing the input data or x.
+ * Note on the dimenionality. The number of rows corresponds to the number of datapoints.
+ * The column dimension is the dimension of the inputs.
+ * @param training_data matrix representing the output data or f(x).
+ * Note on the dimenionality. The number of rows corresponds to the number of datapoints.
+ * The column dimension is the dimension of the outputs.
+ * @return success
+ */
+int reservoir_computer::train(const Eigen::MatrixXd &input_data, const Eigen::MatrixXd &training_data) {
+    printf("In row %d Out row %d In col %d Out col %d\n", input_data.rows(), training_data.rows(), input_data.cols(), training_data.cols());
+    if(input_data.rows() == training_data.rows() && input_data.cols() == input_dimension_ && training_data.cols() == output_dimension_)
+    {
+        current_status_ = TRAINING;
 
-    int discard_amount = input_data.rows() * washout_;
-    current_reservoir_state_ = reservoir_evolution_.row(reservoir_evolution_.rows() - 1);
-    for (long i = 0; i < input_data.rows(); i++) {
-        //Get the current state of the reservoir
-        //Calculate the propogation of the reservoir
-        current_reservoir_state_ = calculate_reservoir_propagation(input_data.row(i), current_reservoir_state_, 1);
-        //Expand the reservoir evolution matrix by 1 and set the new value
-        if(i > discard_amount)
-        {
-            reservoir_evolution_.conservativeResize(reservoir_evolution_.rows() + 1, reservoir_evolution_.cols());
-            reservoir_evolution_.row(reservoir_evolution_.rows() - 1) = current_reservoir_state_;
+        int discard_amount = input_data.rows() * washout_;
+        current_reservoir_state_ = reservoir_evolution_.row(reservoir_evolution_.rows() - 1);
+        for (long i = 0; i < input_data.rows(); i++) {
+            //Get the current state of the reservoir
+            //Calculate the propogation of the reservoir
+            current_reservoir_state_ = calculate_reservoir_propagation(input_data.row(i), current_reservoir_state_, 1);
+            //Expand the reservoir evolution matrix by 1 and set the new value
+            if (i >= discard_amount) {
+                reservoir_evolution_.conservativeResize(reservoir_evolution_.rows() + 1, reservoir_evolution_.cols());
+                reservoir_evolution_.row(reservoir_evolution_.rows() - 1) = current_reservoir_state_;
+            }
         }
-    }
-    update_weights(training_data.bottomRows(training_data.rows() - discard_amount));
+        update_weights(training_data.bottomRows(training_data.rows() - discard_amount));
 
-    current_status_ = TRAINED;
+        current_status_ = TRAINED;
+        return RETURN_CODE_DEFAULT;
+    }
+    return RETURN_CODE_ERROR;
 }
 
 /**
@@ -106,7 +127,6 @@ void reservoir_computer::train(const Eigen::MatrixXd &input_data, const Eigen::M
 Eigen::RowVectorXd reservoir_computer::calculate_reservoir_propagation(const Eigen::RowVectorXd &input,
                                                                        const Eigen::RowVectorXd &previous_state,
                                                                        double time_step) {
-    //std::cout << current_reservoir_state_ << std::endl;
     //Use runge kutta estimation with the reservoir derivative function to estimate the next reservoir state
     Eigen::MatrixXd k1, k2, k3, k4;
     k1 = calculate_reservoir_evolution(previous_state, input);
@@ -122,22 +142,22 @@ Eigen::RowVectorXd reservoir_computer::calculate_reservoir_propagation(const Eig
  * @param input The input data
  * @return A vector representing
  */
-Eigen::MatrixXd
-reservoir_computer::calculate_reservoir_evolution(const Eigen::MatrixXd &state_space, const Eigen::MatrixXd &input) {
-#ifdef RESERVOIR_DEBUG
-    std::cout << "Input size: "  << input.rows() << "x" << input.cols() << std::endl;
-    std::cout << "W_in: "  << W_in.rows() << "x" << W_in.cols() << std::endl;
-    std::cout << "W_in * Input: "  << (W_in*input).rows() << "x" << (W_in*input).cols() << std::endl;
+Eigen::RowVectorXd
+reservoir_computer::calculate_reservoir_evolution(const Eigen::RowVectorXd &state_space,
+                                                  const Eigen::RowVectorXd &input) {
+#ifdef BLEH
+    std::cout << "Input size: " << input.rows() << "x" << input.cols() << std::endl;
+    std::cout << "W_in: " << W_in.rows() << "x" << W_in.cols() << std::endl;
+    std::cout << "W_in * Input: " << (input * W_in).rows() << "x" << (input * W_in).cols() << std::endl;
 #endif
     //Wendson had it as -leakage_rate_ * state_space + (leakage_rate_ * tanh(W*state_space+W_in*input)
     //might also need to add a bias vector (thesis pg. 20, 21, 22) after input
-    return (((-leakage_rate_) * state_space) +
-            leakage_rate_ * (W * state_space + W_in * input + bias_).unaryExpr(&hypertan)).transpose();
+    return ((-leakage_rate_) * state_space) +
+           leakage_rate_ * (state_space * W + input * W_in + bias_).unaryExpr(&hypertan);
 }
 
 /**
  * Update the weights of the W_out matrix
- * @param reservoir_state
  * @param target
  */
 void reservoir_computer::update_weights(const Eigen::MatrixXd &target) {
@@ -146,36 +166,38 @@ void reservoir_computer::update_weights(const Eigen::MatrixXd &target) {
     Eigen::MatrixXd X_T = X.transpose();
     //output matrix weights
 
-    W_out = (target.transpose() * X) * (X_T * X + regression_parameter_ * I).inverse();
+    W_out = (X_T * X + regression_parameter_ * I).inverse() * X_T * target;
 
 #ifdef RESERVOIR_DEBUG
-    std::cout << "X size: "  << X.rows() << "x" << X.cols() << std::endl;
-    std::cout << "X_T size: "  << X_T.rows() << "x" << X_T.cols() << std::endl;
-    std::cout << "target size: "  << target.rows() << "x" << target.cols() << std::endl;
-    std::cout << "W_out: "  << W_out.rows() << "x" << W_out.cols() << std::endl;
+    std::cout << "X size: " << X.rows() << "x" << X.cols() << std::endl;
+    std::cout << "X_T size: " << X_T.rows() << "x" << X_T.cols() << std::endl;
+    std::cout << "target size: " << target.rows() << "x" << target.cols() << std::endl;
+    std::cout << "W_out: " << W_out.rows() << "x" << W_out.cols() << std::endl;
 #endif
-}
-
-Eigen::VectorXd reservoir_computer::predict(const Eigen::RowVectorXd &input_data) {
-    current_reservoir_state_ = calculate_reservoir_propagation(input_data, current_reservoir_state_, 1);
-#ifdef RESERVOIR_DEBUG
-    std::cout << "Result" << W_out * current_reservoir_state_.transpose()<< std::endl;
-#endif
-    return (W_out * current_reservoir_state_.transpose()).transpose();
 }
 
 /**
- * Resets the network to an untrained state
+ * Predict a new value from the reservoir
+ * @param input Row vector of input data to calculate an output value
+ * @return a row vector representing the outptut data
+ */
+Eigen::RowVectorXd reservoir_computer::predict(const Eigen::RowVectorXd &input) {
+    current_reservoir_state_ = calculate_reservoir_propagation(input, current_reservoir_state_, 1);
+    return current_reservoir_state_ * W_out;
+}
+
+/**
+ * Reset the reservoir.
  */
 void reservoir_computer::reset() {
-    W_in = Eigen::MatrixXd::Random(reservoir_dimension_, input_dimension_);
+    W_in = Eigen::MatrixXd::Random(input_dimension_, reservoir_dimension_);
     //nodes in the reservoir itself
     W = Eigen::SparseMatrix<double>(reservoir_dimension_, reservoir_dimension_);
     //output weights
-    W_out = Eigen::MatrixXd(output_dimension_, reservoir_dimension_);
+    W_out = Eigen::MatrixXd(reservoir_dimension_, output_dimension_);
     setup_reservoir();
     reservoir_evolution_ = Eigen::MatrixXd::Constant(1, reservoir_dimension_, 0);
-    bias_ = Eigen::VectorXd::Random(reservoir_dimension_);
+    bias_ = Eigen::RowVectorXd::Random(reservoir_dimension_);
     current_status_ = NOT_TRAINED;
 }
 
@@ -232,14 +254,14 @@ int reservoir_computer::update_regression_parameter(double param) {
 }
 
 /**
- * Update the ridge regression alpha parameter. If the reservoir is currently trained or training it will not update.
- * @param param The new alpha parameter
+ * Update the washout parameter. If the reservoir is currently trained or training it will not update.
+ * @param param The new washout parameter
  * @return 0 for success, -1 for error
  */
 int reservoir_computer::update_washout(double washout) {
     int success = RETURN_CODE_DEFAULT;
     if (current_status_ == NOT_TRAINED) {
-        regression_parameter_ = washout;
+        washout_ = washout;
     } else {
         success = RETURN_CODE_ERROR;
     }

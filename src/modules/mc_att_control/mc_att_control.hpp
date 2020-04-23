@@ -64,16 +64,15 @@
 #include <AttitudeControl.hpp>
 #include <RateControl.hpp>
 
-#define RESERVOIR_PARAM_INPUT_VECTOR_SIZE 6
+#define RESERVOIR_PARAM_INPUT_VECTOR_SIZE 4
 #define RESERVOIR_PARAM_RESERVOIR_SIZE 100
 #define RESERVOIR_PARAM_OUTPUT_VECTOR_SIZE 4
-#define RESERVOIR_PARAM_SPARSITY 0.01
-#define RESERVOIR_PARAM_SPECTRAL_RADIUS 0.01
-#define RESERVOIR_PARAM_LEAKAGE_RATE 5
-#define ESERVOIR_PARAM_REGRESSION_PARAM 0.01
+#define RESERVOIR_PARAM_SPARSITY 0.1
+#define RESERVOIR_PARAM_SPECTRAL_RADIUS 0.9
+#define RESERVOIR_PARAM_LEAKAGE_RATE 1
+#define RESERVOIR_PARAM_REGRESSION_PARAM 1e-6
 #define RESERVOIR_PARAM_WASHOUT 0.05
 
-#define DEFAULT_DATAPOINTS_TO_COLLECT 1000
 
 /**
  * Multicopter attitude control app start / stop handling function
@@ -105,7 +104,7 @@ public:
 	bool init();
 
 private:
-    static reservoir_manager reservoirs;
+    static reservoir_manager attitude_reservoir_manager;
     static double noise_max;
     static int datapoints_to_collect, datapoints_collected;
     static bool training;

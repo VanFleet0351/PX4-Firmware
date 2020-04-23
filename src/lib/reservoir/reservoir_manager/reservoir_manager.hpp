@@ -1,10 +1,5 @@
-
 #ifndef PX4_RESERVOIR_MANAGER_HPP
 #define PX4_RESERVOIR_MANAGER_HPP
-
-#ifndef MODULE_NAME
-#define MODULE_NAME "reservoir_manager"
-#endif
 
 #include "reservoir/reservoir_computer.hpp"
 #include <iostream>
@@ -24,7 +19,7 @@ class reservoir_manager{
 
 	void destroy_all_reservoirs();
 	void destroy_last_reservoir();
-    Eigen::VectorXd predict(const Eigen::RowVectorXd &input_data);
+    Eigen::RowVectorXd predict(const Eigen::RowVectorXd &input_data);
 	void train_last_reservoir(const Eigen::MatrixXd &input_data, const Eigen::MatrixXd &training_data);
     void print_reservoirs_info();
 
@@ -36,7 +31,7 @@ class reservoir_manager{
 
 	private:
 
-    std::list<reservoir_computer> reservoirs_;
+    std::vector<reservoir_computer> reservoirs_;
 
     //hyperparameters
 	double sparsity_; // k in Canaday's paper usually around 10%

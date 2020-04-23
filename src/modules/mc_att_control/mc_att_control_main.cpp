@@ -59,14 +59,14 @@ int MulticopterAttitudeControl::datapoints_to_collect = 0;
 int MulticopterAttitudeControl::datapoints_collected = 0;
 double MulticopterAttitudeControl::noise_max = 0;
 
-reservoir_manager MulticopterAttitudeControl::reservoirs = reservoir_manager(RESERVOIR_PARAM_INPUT_VECTOR_SIZE,
-                                                                             RESERVOIR_PARAM_RESERVOIR_SIZE,
-                                                                             RESERVOIR_PARAM_OUTPUT_VECTOR_SIZE,
-                                                                             RESERVOIR_PARAM_SPARSITY,
-                                                                             RESERVOIR_PARAM_SPECTRAL_RADIUS,
-                                                                             RESERVOIR_PARAM_LEAKAGE_RATE,
-                                                                             ESERVOIR_PARAM_REGRESSION_PARAM,
-                                                                             RESERVOIR_PARAM_WASHOUT);
+reservoir_manager MulticopterAttitudeControl::attitude_reservoir_manager = reservoir_manager(RESERVOIR_PARAM_INPUT_VECTOR_SIZE,
+                                                                                             RESERVOIR_PARAM_RESERVOIR_SIZE,
+                                                                                             RESERVOIR_PARAM_OUTPUT_VECTOR_SIZE,
+                                                                                             RESERVOIR_PARAM_SPARSITY,
+                                                                                             RESERVOIR_PARAM_SPECTRAL_RADIUS,
+                                                                                             RESERVOIR_PARAM_LEAKAGE_RATE,
+                                                                                             RESERVOIR_PARAM_REGRESSION_PARAM,
+                                                                                             RESERVOIR_PARAM_WASHOUT);
 
 MulticopterAttitudeControl::MulticopterAttitudeControl() :
         ModuleParams(nullptr),
@@ -81,6 +81,7 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
     _rates_sp.zero();
     _thrust_sp = 0.0f;
     _att_control.zero();
+
 
     parameters_updated();
 }
@@ -418,50 +419,46 @@ MulticopterAttitudeControl::publish_actuator_controls() {
     _actuators.timestamp = hrt_absolute_time();
 
 
-    //TODO put in the prediction values
-    Eigen::RowVectorXd angle_input(6);
-    Eigen::VectorXd actuator_output = reservoirs.predict(angle_input);
     /*
     for (int i = 0; i < 4; i++) {
         _actuators.control[i] += ((actuator_output(i) < 1 && actuator_output(i) >= 0) ? (float) actuator_output(i)
                                                                                       : 0.0f);
     }*/
 
-    if(training)
-    {
-        Eigen::RowVectorXd actuator_control_row(4);
-        for(int i = 0; i < 4; i++)
-        {
-            float noise = noise_max / 2.0 - (static_cast <double> (rand()) / static_cast <double> (RAND_MAX) * noise_max);
-            _actuators.control[i] += noise;
-            actuator_control_row.col(i) << noise;
+    if (training) {
+        float noise[4];
+        for (int i = 0; i < 4; i++) {
+            noise[i] = noise_max / 2.0 - (static_cast <double> (rand()) / static_cast <double> (RAND_MAX) * noise_max);
+            _actuators.control[i] += noise[i];
         }
 
-        actuator_controls_training_data.conservativeResize(actuator_controls_training_data.rows() + 1, 4);
-        if(datapoints_collected == 0)
-        {
-            //TODO puts the actuator controls in
-            //actuator_controls_training_data.conservativeResize(actuator_controls_training_data.rows() + 1, 4);
-            //actuator_controls_training_data.row(actuator_controls_training_data.rows() - 1) = actuator_control_row;
+        if (datapoints_collected == 0) {
+            angles_input_data = Eigen::MatrixXd(datapoints_to_collect, 4);
+            actuator_controls_training_data = Eigen::MatrixXd(datapoints_to_collect, 4);
+
+            for (int i = 0; i < 4; i++) {
+                actuator_controls_training_data(datapoints_collected, i) = noise[i];
+            }
             datapoints_collected++;
-        }
-        else if(datapoints_collected < datapoints_to_collect - 1)
-        {
-            //actuator_controls_training_data.conservativeResize(actuator_controls_training_data.rows() + 1, 4);
-            //actuator_controls_training_data.row(actuator_controls_training_data.rows() - 1) = actuator_control_row;
-            //TODO put both training and input data in
+        } else if (datapoints_collected < datapoints_to_collect - 1) {
+            for (int i = 0; i < 4; i++) {
+                actuator_controls_training_data(datapoints_collected, i) = noise[i];
+                angles_input_data(datapoints_collected - 1, i) = 0;
+            }
+
             datapoints_collected++;
-        } else{
-            PX4_INFO("Finished training");
-            //TODO put the input data in
-            angles_input_data.conservativeResize(actuator_controls_training_data.rows() + 1, 4);
+        } else {
+            PX4_INFO("Finished collecting datapoints. Starting to train...");
+            for (int i = 0; i < 4; i++) {
+                angles_input_data(datapoints_collected - 1, i) = 0;
+            }
 
             training = false;
             datapoints_to_collect = 0;
             datapoints_collected = 0;
-            //reservoirs.train_last_reservoir(angles_input_data, actuator_controls_training_data);
-            //actuator_controls_training_data = Eigen::MatrixXd(0, 4);
-            //angles_input_data = Eigen::MatrixXd(0, 4);
+            //TODO we need to see about replacing the
+            //attitude_reservoir_manager.train_last_reservoir(angles_input_data, actuator_controls_training_data);
+            PX4_INFO("Finished training");
         }
     }
 
@@ -674,14 +671,14 @@ int MulticopterAttitudeControl::custom_command(int argc, char *argv[]) {
                 if (!strcmp(argv[1], "add")) {
                     if (argc > 2) {
                         uint16_t dimension = std::atoi(argv[2]);
-                        if (reservoirs.add_reservoir(dimension) == 0) {
+                        if (attitude_reservoir_manager.add_reservoir(dimension) == 0) {
                             PX4_INFO("Added reservoir of size %d", dimension);
                         } else {
                             PX4_ERR("Failed to add reservoir. Additional reservoirs cannot be added while one is untrained or training.");
                         }
 
                     } else {
-                        if (reservoirs.add_reservoir() == 0) {
+                        if (attitude_reservoir_manager.add_reservoir() == 0) {
                             PX4_INFO("Added reservoir of default size");
                         } else {
                             PX4_ERR("Failed to add reservoir. Additional reservoirs cannot be added while one is untrained or training.");
@@ -691,51 +688,51 @@ int MulticopterAttitudeControl::custom_command(int argc, char *argv[]) {
                 } else if (!strcmp(argv[1], "setleakage")) {
                     if (argc > 2) {
                         double leakage = std::atof(argv[2]);
-                        reservoirs.update_leakage_rate(leakage);
+                        attitude_reservoir_manager.update_leakage_rate(leakage);
                         PX4_INFO("Set reservoir leakage value %f", leakage);
                         return 0;
                     }
                 } else if (!strcmp(argv[1], "setregression")) {
                     if (argc > 2) {
                         double regression = std::atof(argv[2]);
-                        reservoirs.update_regression_parameter(regression);
+                        attitude_reservoir_manager.update_regression_parameter(regression);
                         PX4_INFO("Set reservoir regression value %f", regression);
                         return 0;
                     }
                 } else if (!strcmp(argv[1], "setwashout")) {
                     if (argc > 2) {
                         double washout = std::atof(argv[2]);
-                        reservoirs.update_washout(washout);
+                        attitude_reservoir_manager.update_washout(washout);
                         PX4_INFO("Set reservoir washout value %f", washout);
                         return 0;
                     }
                 } else if (!strcmp(argv[1], "clear")) {
                     training = false;
-                    reservoirs.destroy_all_reservoirs();
+                    attitude_reservoir_manager.destroy_all_reservoirs();
                     PX4_INFO("Removed all reservoirs");
                     return 0;
                 } else if (!strcmp(argv[1], "remove")) {
-                    reservoirs.destroy_last_reservoir();
+                    attitude_reservoir_manager.destroy_last_reservoir();
                     PX4_INFO("Removed last reservoir");
                     return 0;
                 } else if (!strcmp(argv[1], "train")) {
                     if (training) {
                         PX4_ERR("We're already training!");
                     } else {
-                        training = true;
-                        datapoints_collected = 0;
                         if (argc == 4) {
+                            training = true;
+                            datapoints_collected = 0;
                             datapoints_to_collect = std::atoi(argv[2]);
                             noise_max = std::atof(argv[3]);
-                            PX4_INFO("Will collect %d points of training data for this reservoir", datapoints_to_collect);
-                        }
-                        else{
+                            PX4_INFO("Will collect %d points of training data for this reservoir",
+                                     datapoints_to_collect);
+                        } else {
                             return print_usage("Invalid number of arguments!");
                         }
                     }
                     return 0;
                 } else if (!strcmp(argv[1], "info")) {
-                    reservoirs.print_reservoirs_info();
+                    attitude_reservoir_manager.print_reservoirs_info();
                     return 0;
                 }
             }
@@ -780,7 +777,9 @@ To reduce control latency, the module directly polls on the gyro topic published
     PRINT_MODULE_USAGE_ARG("clear", "Remove all the managed reservoirs", false);
     PRINT_MODULE_USAGE_ARG("remove", "Removes the last reservoir", false);
     PRINT_MODULE_USAGE_ARG("info", "Print information about all the managed reservoirs", false);
-    PRINT_MODULE_USAGE_ARG("train datapoints noise_max", "Trains the last untrained reservoir. Requires an int representing the max number of datapoints and a float representing the magnitude of the noise", false);
+    PRINT_MODULE_USAGE_ARG("train datapoints noise_max",
+                           "Trains the last untrained reservoir. Requires an int representing the max number of datapoints and a float representing the magnitude of the noise",
+                           false);
     PRINT_MODULE_USAGE_ARG("setleakage", "Set the leakage rate for future reservoirs", false);
     PRINT_MODULE_USAGE_ARG("setregression", "Set the regression parameter for future reservoirs", false);
     PRINT_MODULE_USAGE_ARG("setwashout", "Set the washout for future reservoirs", false);
