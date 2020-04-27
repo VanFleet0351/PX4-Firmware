@@ -57,7 +57,10 @@ int reservoir_manager::add_reservoir(uint16_t reservoir_dimension) {
  */
 void reservoir_manager::train_last_reservoir(const Eigen::MatrixXd &input_data, const Eigen::MatrixXd &training_data) {
     if (!reservoirs_.empty()) {
-        reservoirs_.back().train(input_data, training_data);
+        if(reservoirs_.back().get_status() == NOT_TRAINED)
+        {
+            reservoirs_.back().train(input_data, training_data);
+        }
     } else {
 
     }
